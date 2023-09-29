@@ -1,0 +1,386 @@
+﻿a:link    {
+  text-decoration:  none;
+  color:            black;
+  }
+a:visited {
+  text-decoration:  none;
+  color:            black;
+  } 
+a:hover   {
+  text-decoration:  none;
+  color:            blue;
+  }
+
+body {
+	/*font-family:
+	Arial, Helvetica, sans-serif;*/
+	text-align:center;
+	padding:0px;
+	margin:0px;
+	border:0px;
+	-webkit-appearance:none; /* Per rendere la visualizzazione uguale sull'iPad */
+	font-size:0.8em;
+}
+
+#blocco_tabsHeader, #outer {
+	position:absolute;
+	width:1100px;
+	left:50%;
+	margin-left:-550px;
+}
+
+#blocco_tabsHeader {
+	top:10px;
+	padding-top:3px;
+	height:47px;
+}
+
+#outer {
+	top:70px;
+	height:1100px;
+	padding:0px;
+	background-color:white;
+}
+
+#blocco_tabs {
+	position:absolute;
+	width:75%;
+	height:100%;
+	left:0%;
+	font-size:1em;
+}
+
+#myHeader {
+	position:absolute;
+	height:100%;
+	top:0px;
+	left:75%;
+	width:25%;
+	margin:3px;
+}
+
+ol, li {
+	margin-left:5px;
+	list-style:none;
+	text-decoration:none;
+	float:left;
+	padding:2px;
+	margin-top:0px;
+	margin-right:0px;
+}
+
+li {
+	background-color:silver;
+	margin-left:4px;
+	width:75px;
+	/* font-size:0.7em; */
+	font-weight:bold;
+	border:0px;
+}
+
+.fiscalDocumentTabsListItem {
+	text-align:center;
+	margin-top:35px;
+	margin-left:15px;
+	width:130px;
+	height:30px;
+}
+
+.fiscalReceiptTabsListItem {
+	text-align:center;
+	margin-top:35px;
+	margin-left:15px;
+	width:130px;
+	height:30px;
+}
+
+#fiscalReceiptTab, #creditNoteTab {
+}
+
+#blocco_main, #blocco_comm_attr, #blocco_send, #blocco_receive {
+	position:absolute;
+	left:0px;
+	width:100%;
+	padding:0px;
+	margin:0px;
+	border:0px;
+}
+
+#blocco_main {
+	height:70%;
+	top:0px;
+	background-color:white;
+	border-style:solid;
+	border-width:3px;
+	border-color:gray;
+}
+
+#blocco_comm_XML {
+	position:absolute;
+	width:100%;
+	height:50%;
+	left:0%;
+	top:0%;
+	padding:0px;
+	border-style:solid;
+	border-width:3px;
+	border-color:gray;
+	border-left:0px;
+	border-right:0px;
+	border-top:0px;
+	/*overflow:hidden;*/
+}
+
+.blocco_comm {
+	position:absolute;
+	width:40%;
+	height:90%;
+	top:0%;	
+	left:10px;
+	padding-top:10px;
+	margin:0px;
+	background-color:white;
+	text-align:left;
+	visibility:hidden;
+	overflow:hidden;
+}
+
+input, select {
+	font-size:11pt;
+}
+
+#blocco_XML {
+	position:absolute;
+	margin:0px;
+	height:99%;
+	width:60%;
+	right:0px;
+	border-style:solid;
+	border-width:3px;
+	border-color:gray;
+	border-right:0px;
+	border-top:0px;	
+	border-bottom:0px;
+	overflow:scroll;
+	/* z-index:1; */
+}
+
+#XMLTable {
+	visibility:visible;
+}
+
+#fiscalDocumentTabs, #fiscalReceiptTabs {
+	margin-top:10px;
+	position:absolute;
+	width:50%;
+	left:40%;
+	visibility:hidden;
+	text-align:left;
+	margin-left:10%;
+}
+
+#blocco_attr_fpMateConfiguration, #blocco_attr, #blocco_attr_printerCommand, #blocco_attr_biglietteriaTicket {
+	position:absolute;
+	width:100%;
+	height:50%;
+	bottom:0%;
+	left:0px;
+	margin:0px;
+	padding-top:10px;
+	text-align:left;
+	
+	/*z-index:5;*/
+}
+
+.attributesTableCells {
+	width:25%;	
+	/*
+	border-color:red;
+	border:0px;
+	border-style:solid;
+	*/
+}
+
+#barCodeAttributesTable {
+	position:absolute;
+	top:60px;
+	visibility:hidden;
+}
+
+#goBackImage, #barCodeImage, #showAttributesButton, #showBarCodeAttributesButton {
+	position:absolute;
+	top:10px;
+	left:60%;
+}
+
+#goBackImage, #showAttributesButton {
+	visibility:hidden;
+}
+
+#pasteXMLButtonandWindow, #insertBase64ButtonandWindow {
+	position:absolute;
+	top:0%;
+	height:90%;
+	left:48%;
+	width:52%;
+	visibility:hidden;
+}
+
+#clearPasteXMLWindowButton, #pasteXMLWindow, #clearBase64WindowButton, #insertBase64Button, #base64Window {
+	position:absolute;
+	visibility:hidden;
+}
+
+#clearPasteXMLWindowButton, #clearBase64WindowButton, #insertBase64Button  {
+	top:5%;
+}
+
+#clearPasteXMLWindowButton
+{
+	left:42%;
+}
+
+#clearBase64WindowButton
+{
+	left:25%;
+}
+
+#insertBase64Button
+{
+	left:55%;
+}
+
+#pasteXMLWindow, #base64Window {
+	position:absolute;
+	top:15%;
+	left:0%;
+}
+
+#blocco_send {
+	height:12%;
+	top:73%;
+	padding-top:10px;
+	text-align:left;
+	border-style:solid;
+	border-width:3px;
+	border-color:gray;
+}
+
+#printerSelectionForm {
+	position:absolute;
+	top:10px;
+	left:1%;
+}
+
+#crossDomainForm {
+	position:absolute;
+	top:10px;
+	left:23%;
+}
+
+#ipAddresses, #devIdLine {
+	visibility:hidden;
+}
+
+#toggleXMLButton, #singleSendButton, #multiSendButton, #clearButton {
+	position:absolute;
+	top:25%;
+	height:60px;
+	width:100px;
+}
+
+#toggleXMLButton {
+	left:60%;
+}
+
+#singleSendButton {
+	left:70%;
+}
+
+#multiSendButton {
+	left:80%;
+}
+
+#clearButton {
+	left:90%;
+}
+
+#blocco_receive {
+	bottom:0px;
+	height:12%;
+	border-style:solid;
+	border-width:3px;
+	border-color:gray;
+	overflow:scroll;
+}
+
+#blocco_receive_result, #blocco_receive_add_info {
+	left:0px;
+	text-align:left;
+	padding-top:8px;
+	padding-left:5px;
+	border-style:solid;
+	border-width:0px;
+	border-color:gray;
+}
+
+#blocco_receive_add_info {
+	position:absolute;
+	top:0px;
+	left:30%;
+}
+
+#fpMateConfigurationAttributesForm, #attributesForm, #printerCommandAttributesForm, #biglietteriaTicketAttributesForm {
+	margin-left:10px;
+}
+
+#blocco_attr, attributesForm {
+	visibility:visible;
+}
+
+#blocco_attr_printerCommand, #fpMateConfigurationAttributesForm, #printerCommandAttributesForm, #blocco_attr_biglietteriaTicket, #biglietteriaTicketAttributesForm {
+	visibility:hidden;
+}
+
+img {
+	border:0px;
+	border-color:black;
+	border-style:ridge;
+}
+
+th {
+	height:60px;
+}
+
+table, tr, td, th {
+	width:100%;
+	border-style:solid;
+	border-width:0px;
+	border-color:green;
+	border-collapse:separate;
+	padding-left:5px;
+	padding-right:3px;
+	padding-top:2px;
+	text-align:left;
+	font:1em;
+}
+
+h1, h2, h4 {
+	position:absolute;
+	top:0px;
+	left:0px;
+	width:100%;
+	padding:0px;
+	margin:0px;
+	border:0px;
+	height:40px;
+	line-height:100%;
+}
+h1 {
+	font-size:40px;
+	line-height:150px;
+}
+h4 {
+
+	line-height:56px;
+}

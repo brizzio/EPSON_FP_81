@@ -1,0 +1,4253 @@
+<!--!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<HTML lang="it">
+
+   <HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"> 
+      <TITLE>
+        MAREL EPSON FP-81
+      </TITLE>
+        <meta http-equiv="Content-Language" content="it">
+	<meta name="viewport" content="user-scalable=no" >
+        
+      <link rel="stylesheet" type="text/css" href="fp_demo.css">
+<script type="text/javascript" src="fiscalprint 20180323 V 1.1.0.js"></script>
+<script type="text/javascript">
+
+var hostname = '192.168.001.110'
+var tabActiveBackgroundColor = "gray";
+var tabInactiveBackgroundColor = "silver";
+var numCommand = 0;
+var beginFiscRecLineAdded = false;
+var creditNoteOpened      = false;
+var refundDocOpened       = false;
+var cancelDocOpened       = false;
+var beginNonFiscLineAdded = false;
+var beginFiscDocLineAdded = false;
+var beginTicketLineAdded  = false;
+var printBarCodeLineAdded = false;
+var sigilloLineAdded      = false;
+var XMLmode = "createXML";
+var fileType = ""; // printerFiscalReceipt for example
+var fileSubType = ""; // creditNote for example
+// var multiSendInterval = 10; // Default = 10 seconds
+var sendInProgress = false;
+var multi = "";
+var elementTag = "";
+var myDate = new Date();
+var cumulative_XML_Lines = "";
+var EFTPOS_Timeout = false;
+
+// Wordings
+var beginFiscRecLineNotAddedMessage = "Begin Fiscal Receipt command must be sent first";
+var creditNoteNotOpenMessage = "Print Rec Message with \"PRATICA DI RESO \"prefix must be sent first";
+var refundDocNotOpenMessage = "Print Rec Message with \"RESO MERCE N.\" prefix followed by reference Z report number, commercial doc number and emission date must be sent first";
+var cancelDocNotOpenMessage = "Print Rec Message with \"ANNULLAMNETO N.\" prefix followed by reference Z report number, commercial doc number and emission date must be sent first";
+var beginNonFiscLineNotAddedMessage = "Begin Non-fiscal Receipt command must be sent first";
+var beginFiscDocLineNotAddedMessage = "Begin Fiscal Document command must be sent first";
+var beginTicketLineNotAddedMessage = "Begin Ticket command must be sent first";
+var createXMLModeHeaderText = "Create XML Mode";
+var pasteXMLModeHeaderText = "Paste XML Mode";
+var insertBase64Text = "Insert Base 64 encoded data and click Insert";
+var fpMateConfHeaderText = "fpMate Configuration";
+var fiscalReceiptHeaderText = "Fiscal Receipt";
+var creditNoteHeaderText = "Credit Note";
+var refundDocHeaderText = "Refund Doc";
+var cancelDocHeaderText = "Cancel Doc";
+var nonFiscalReceiptHeaderText = "Non-fiscal Receipt";
+var fiscalReportHeaderText = "Fiscal Report";
+var commandHeaderText = "Command";
+var fiscalDocumentHeaderText = "Fiscal Document";
+var fiscalDocumentHeaderDocTypeGrouping1Text = "<br>Based on Last Receipt";
+var fiscalDocumentHeaderDocTypeGrouping2Text = "Direct";
+var fiscalDocumentHeaderDocTypeGrouping3Text = "Free";
+var fiscalDocumentHeaderDocTypeGrouping4Text = "Receipt Based Free";
+var biglietteriaTicketHeaderText = "Fiscal Ticket";
+var eposPrintHeaderText = "epos-Print";
+var commonCommandsHeaderText = "Common Commands";
+var specialFunctionsHeaderText = "Special Functions";
+var createXMLTitle = "Click here if you wish to create the XML line by line";
+var pasteXMLTitle = "Click here if you wish to paste your own XML lines. Paste your lines directly in the window that will appear above";
+var multiSendStartTitle = "Click here to start multi sending";
+var multiSendCancelTitle = "Click here to cancel";
+var operatorOffsetWarningMessage = "Operator offset only used with printRecItem, printRecRefund and printRecItemVoid (only if voidLastItem = 0)";
+
+function preparePage()
+{
+	document.getElementById('toggleXMLButton').title = pasteXMLTitle;
+	document.getElementById('myHeaderText').innerHTML = createXMLModeHeaderText;
+	setAllCommandsTabsHidden();
+	setOuterMargins();
+	
+	if (myDate.getDate() < 10)
+	{
+		document.printerCommandAttributesForm.fromDay.value = "0" + myDate.getDate();
+		document.printerCommandAttributesForm.toDay.value = "0" + myDate.getDate();
+		document.printerCommandAttributesForm.day.value = "0" + myDate.getDate();
+	}
+	else
+	{
+		document.printerCommandAttributesForm.fromDay.value = myDate.getDate();
+		document.printerCommandAttributesForm.toDay.value = myDate.getDate();
+		document.printerCommandAttributesForm.day.value = myDate.getDate();
+	}
+	
+	if (myDate.getMonth() + 1 < 10)
+	{
+		document.printerCommandAttributesForm.fromMonth.value = "0" + (myDate.getMonth() + 1);
+		document.printerCommandAttributesForm.toMonth.value = "0" + (myDate.getMonth() + 1);
+		document.printerCommandAttributesForm.month.value = "0" + (myDate.getMonth() + 1);
+	}
+	else
+	{
+		document.printerCommandAttributesForm.fromMonth.value = myDate.getMonth() + 1;
+		document.printerCommandAttributesForm.toMonth.value = myDate.getMonth() + 1;
+		document.printerCommandAttributesForm.month.value = myDate.getMonth() + 1;
+	}
+
+	document.printerCommandAttributesForm.fromYear.value = myDate.getFullYear();
+	document.printerCommandAttributesForm.toYear.value = myDate.getFullYear();
+	document.printerCommandAttributesForm.year.value = myDate.getFullYear();
+	
+	if (myDate.getHours() < 10)
+	{
+		document.printerCommandAttributesForm.hour.value = "0" + myDate.getHours();
+	}
+	else
+	{
+		document.printerCommandAttributesForm.hour.value = myDate.getHours();
+	}
+
+	if (myDate.getMinutes() < 10)
+	{
+		document.printerCommandAttributesForm.minute.value = "0" + myDate.getMinutes();
+	}
+	else
+	{
+		document.printerCommandAttributesForm.minute.value = myDate.getMinutes();
+	}
+
+}
+
+function setOuterMargins()
+{
+	// alert(screen.availWidth);
+	// alert(document.body.clientWidth);
+	if (document.body.clientWidth > 1200)
+	{
+		document.getElementById('blocco_tabsHeader').style.left = "50%";
+		document.getElementById('blocco_tabsHeader').style.marginLeft = "-550px";
+		document.getElementById('outer').style.left = "50%";
+		document.getElementById('outer').style.marginLeft = "-550px";
+	}
+	else
+	{
+		document.getElementById('blocco_tabsHeader').style.left = "0%";
+		document.getElementById('blocco_tabsHeader').style.marginLeft = "50px";
+		document.getElementById('outer').style.left = "0%";
+		document.getElementById('outer').style.marginLeft = "50px";
+	}
+}
+
+function fpMateConfCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('fpMateConfigurationTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('myHeaderText').innerHTML = fpMateConfHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('fpMateConfCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = 'visible';
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr_fpMateConfiguration').style.visibility = "visible";
+	document.getElementById('fpMateConfigurationAttributesForm').style.visibility = "visible";	
+		
+	fileType = "fpMateConfiguration";
+	fileSubType = "";
+}
+
+function fiscalReceiptTypesFunc() // Top left Fiscal Receipt button
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('fiscalReceiptTab').style.backgroundColor = tabActiveBackgroundColor;
+	setAllCommandsTabsHidden();
+	
+	if (fileSubType == "")
+	{	
+		document.getElementById('fiscalReceiptTabs').style.visibility = "visible";
+		document.getElementById('myHeaderText').innerHTML = fiscalReceiptHeaderText;
+		document.getElementById('XMLTable').style.visibility = "hidden";
+		setAllAttributesHidden();
+		document.getElementById('blocco_attr').style.visibility = "visible";
+		document.getElementById('attributesForm').style.visibility = "visible";	
+	
+		fileType = "printerFiscalReceipt";
+	}
+	else if (fileSubType == "fiscalReceipt")
+	{
+		fiscalReceiptCommandsFunc();
+	}
+	else
+	{
+		creditNoteCommandsFunc();
+	}
+}
+
+function fiscalReceiptCommandsFunc()
+{
+	document.getElementById('myHeaderText').innerHTML = fiscalReceiptHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('fiscalReceiptCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = "visible";
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";
+	if (document.attributesForm.messageType.value == 8)
+	{
+		document.attributesForm.messageType.value = 1;
+	}
+	document.attributesForm.message.value = "";
+	
+	fileSubType = "fiscalReceipt";
+}
+
+function creditNoteCommandsFunc()
+{
+	document.getElementById('myHeaderText').innerHTML = creditNoteHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('creditNoteCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = "visible";
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";
+	document.attributesForm.message.value = "PRATICA DI RESO ";
+	if (document.attributesForm.messageType.value == 8)
+	{
+		document.attributesForm.messageType.value = 1;
+	}
+	
+	fileSubType = "creditNote";
+}
+
+function refundDocCommandsFunc()
+{
+	document.getElementById('myHeaderText').innerHTML = refundDocHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('creditNoteCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = "visible";
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";
+	document.attributesForm.message.value = "RESO MERCE N.zzzz-dddd del gg-mm-aaaa";
+	if (document.attributesForm.messageType.value == 8)
+	{
+		document.attributesForm.messageType.value = 1;
+	}
+	
+	fileSubType = "refundDoc";
+}
+
+function cancelDocCommandsFunc()
+{
+	document.getElementById('myHeaderText').innerHTML = cancelDocHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('creditNoteCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = "visible";
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";
+	document.attributesForm.message.value = "ANNULLAMENTO N.zzzz-dddd del gg-mm-aaaa";
+	if (document.attributesForm.messageType.value == 8)
+	{
+		document.attributesForm.messageType.value = 1;
+	}
+	
+	fileSubType = "cancelDoc";
+}
+
+function nonFiscalReceiptCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('nonFiscalReceiptTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('myHeaderText').innerHTML = nonFiscalReceiptHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('nonFiscalReceiptCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = 'visible';
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";	
+	document.attributesForm.messageType.value = 8;
+	
+	fileType = "printerNonFiscal";
+	fileSubType = "";
+}
+
+function fiscalReportCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('fiscalReportTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('myHeaderText').innerHTML = fiscalReportHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('fiscalReportCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = 'visible';
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";	
+
+	fileType = "printerFiscalReport";
+	fileSubType = "";
+}
+
+function commandCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('commandTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('myHeaderText').innerHTML = commandHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('commandCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = 'visible';
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr_printerCommand').style.visibility = "visible";
+	document.getElementById('printerCommandAttributesForm').style.visibility = "visible";
+	
+	fileType = "printerCommand";
+	fileSubType = "";
+}
+
+function fiscalDocumentTypesFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('fiscalDocumentTab').style.backgroundColor = tabActiveBackgroundColor;
+	setAllCommandsTabsHidden();
+	if (fileSubType == "")
+	{	
+		document.getElementById('myHeaderText').innerHTML = fiscalDocumentHeaderText;
+		document.getElementById('fiscalDocumentTabs').style.visibility = "visible";
+		document.getElementById('XMLTable').style.visibility = "hidden";	
+		setAllAttributesHidden();
+		document.getElementById('blocco_attr').style.visibility = "visible";
+		document.getElementById('attributesForm').style.visibility = "visible";
+		document.attributesForm.message.value = "";
+	
+		fileType = "printerFiscalDocument";
+	}
+	else
+	{
+		fiscalDocumentCommandsFunc(fileSubType);
+	}
+}
+
+function fiscalDocumentCommandsFunc(docTypeAttributeIdentifier)
+{
+	fileSubType = docTypeAttributeIdentifier; // used later with beginFiscalDocument documentType attribute
+	switch(fileSubType)
+	{
+	case "lastReceiptInvoice":
+		document.getElementById('myHeaderText').innerHTML = fiscalDocumentHeaderText + " - " + fiscalDocumentHeaderDocTypeGrouping1Text;
+		document.getElementById('lastFiscalReceiptFiscalDocumentCommands').style.visibility = "visible";
+		break;
+	case "directInvoice":
+		document.getElementById('myHeaderText').innerHTML = fiscalDocumentHeaderText + " - " + fiscalDocumentHeaderDocTypeGrouping2Text;
+		document.getElementById('directFiscalDocumentCommands').style.visibility = "visible";
+		break;
+	case "freeInvoice":
+		document.getElementById('myHeaderText').innerHTML = fiscalDocumentHeaderText + " - " + fiscalDocumentHeaderDocTypeGrouping3Text;
+		document.getElementById('freeFiscalDocumentCommands').style.visibility = "visible";
+		break;
+	case "receiptBasedFreeInvoice":
+		document.getElementById('myHeaderText').innerHTML = fiscalDocumentHeaderText + " - " + fiscalDocumentHeaderDocTypeGrouping4Text;
+		document.getElementById('freeFiscalDocumentCommands').style.visibility = "visible";
+		break;
+		
+	default:
+	}
+	document.getElementById('fiscalDocumentTabs').style.visibility = "hidden";
+	document.getElementById('XMLTable').style.visibility = "visible";
+}
+
+function biglietteriaTicketCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('biglietteriaTicketTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('myHeaderText').innerHTML = biglietteriaTicketHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('biglietteriaTicketCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = "visible";
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr_biglietteriaTicket').style.visibility = "visible";
+	document.getElementById('biglietteriaTicketAttributesForm').style.visibility = "visible";	
+
+	fileType = "printerTicket";
+	fileSubType = "";
+}
+
+function eposPrintCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	document.getElementById('eposPrintTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('myHeaderText').innerHTML = eposPrintHeaderText;
+	setAllCommandsTabsHidden();
+	document.getElementById('eposPrintCommands').style.visibility = "visible";
+	document.getElementById('XMLTable').style.visibility = "visible";
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";	
+
+	fileType = "epos-print";
+	fileSubType = "";
+}
+
+function commonCommandsFunc()
+{
+	setAllTabsBackgroundColorInactive();
+	setAllCommandsTabsHidden();
+	document.getElementById('commonCommandsTab').style.backgroundColor = tabActiveBackgroundColor;
+	document.getElementById('commonCommands').style.visibility = "visible";
+	document.getElementById('myHeaderText').innerHTML = commonCommandsHeaderText;
+	setAllAttributesHidden();
+	document.getElementById('blocco_attr').style.visibility = "visible";
+	document.getElementById('attributesForm').style.visibility = "visible";	
+
+	if (fileType == "" || cumulative_XML_Lines == "")
+	{
+			fileType = "printerCommand";
+			fileSubType = "";
+	}
+	else if (fileType == "printerCommand")
+	{
+		document.attributesForm.operator.value = document.printerCommandAttributesForm.operator.value;
+	}
+}
+
+function setAllTabsBackgroundColorInactive()
+{
+	document.getElementById ('fpMateConfigurationTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById ('fiscalReceiptTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('nonFiscalReceiptTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('fiscalReportTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('commandTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('fiscalDocumentTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('biglietteriaTicketTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('eposPrintTab').style.backgroundColor = tabInactiveBackgroundColor;
+	document.getElementById('commonCommandsTab').style.backgroundColor = tabInactiveBackgroundColor;
+}
+
+
+function setAllCommandsTabsHidden()
+{
+	document.getElementById('fpMateConfCommands').style.visibility = "hidden";
+	document.getElementById('fiscalReceiptTabs').style.visibility = "hidden";
+	document.getElementById('fiscalReceiptCommands').style.visibility = "hidden";
+	document.getElementById('creditNoteCommands').style.visibility = "hidden";
+	document.getElementById('nonFiscalReceiptCommands').style.visibility = "hidden";
+	document.getElementById('fiscalReportCommands').style.visibility = "hidden";
+	document.getElementById('commandCommands').style.visibility = "hidden";
+	document.getElementById('fiscalDocumentTabs').style.visibility = "hidden";
+	document.getElementById('lastFiscalReceiptFiscalDocumentCommands').style.visibility = "hidden";
+	document.getElementById('directFiscalDocumentCommands').style.visibility = "hidden";
+	document.getElementById('freeFiscalDocumentCommands').style.visibility = "hidden";
+	document.getElementById('biglietteriaTicketCommands').style.visibility = "hidden";
+	document.getElementById('eposPrintCommands').style.visibility = "hidden";
+	document.getElementById('commonCommands').style.visibility = "hidden";
+	document.getElementById('specialFunctions').style.visibility = "hidden";
+}
+
+function setAllAttributesHidden()
+{
+	document.getElementById('blocco_attr_fpMateConfiguration').style.visibility = "hidden";
+	document.getElementById('fpMateConfigurationAttributesForm').style.visibility = "hidden";
+	document.getElementById('blocco_attr').style.visibility = "hidden";
+	document.getElementById('attributesForm').style.visibility = "hidden";	
+	document.getElementById('blocco_attr_printerCommand').style.visibility = "hidden";
+	document.getElementById('printerCommandAttributesForm').style.visibility = "hidden";
+	document.getElementById('blocco_attr_biglietteriaTicket').style.visibility = "hidden";
+	document.getElementById('biglietteriaTicketAttributesForm').style.visibility = "hidden";
+}
+
+function readVersionFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'readVersion ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+
+function addDeviceFunc()
+{
+	if (fpMateConfigurationAttributesForm.deviceId.value == "")
+	{
+		alert("Device ID must be set");
+		return;
+	}
+	var deviceIp = "";
+	if (document.fpMateConfigurationAttributesForm.deviceIpAddress1.value == "" ||
+		document.fpMateConfigurationAttributesForm.deviceIpAddress2.value == "" ||
+		document.fpMateConfigurationAttributesForm.deviceIpAddress3.value == "" ||
+		document.fpMateConfigurationAttributesForm.deviceIpAddress4.value == "")
+	{
+		alert("All IP address fields must be set");
+		return;
+	}
+	else
+	{
+		deviceIp =	document.fpMateConfigurationAttributesForm.deviceIpAddress1.value + "." +
+					document.fpMateConfigurationAttributesForm.deviceIpAddress2.value + "." +
+					document.fpMateConfigurationAttributesForm.deviceIpAddress3.value + "." +
+					document.fpMateConfigurationAttributesForm.deviceIpAddress4.value;
+	}
+	if (fpMateConfigurationAttributesForm.deviceModel.value == "")
+	{
+		alert("Device Model must be set");
+		return;
+	}
+	if (fpMateConfigurationAttributesForm.deviceRetry.value == "")
+	{
+		alert("Device Retry must be set");
+		return;
+	}
+
+	numCommand++;
+	var encapsulatedLine = 'addDevice&nbsp;&nbsp;' +
+	'deviceId = "' +	fpMateConfigurationAttributesForm.deviceId.value + '" ' +
+	'deviceIp = "' +	deviceIp + '" ' +
+	'deviceType = "' +	fpMateConfigurationAttributesForm.deviceType.value + '" ' +
+	'deviceModel = "' +	fpMateConfigurationAttributesForm.deviceModel.value + '" ' +
+	'deviceRetry = "' +	fpMateConfigurationAttributesForm.deviceRetry.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function saveDevicesFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'saveDevices ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function readDevicesFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'readDevices ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+
+function beginFiscalRecFunc()
+{
+	if (beginFiscRecLineAdded == true) {
+		alert("Begin Fiscal Receipt command already sent");
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+
+	var encapsulatedLine = 'beginFiscalReceipt&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	beginFiscRecLineAdded = true;
+}
+
+function prtRecItemFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	else if (checkQuantity(document.attributesForm.quantity.value) == false)
+	{
+		return;
+	}
+	else if (checkUnitPrice(document.attributesForm.unitPrice.value) == false) 
+	{
+		return;
+	}
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.description.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var encapsulatedLine = 'printRecItem&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'description="'   + myAlphaNumericText + '" ' +
+	'quantity="'      + document.attributesForm.quantity.value + '" ' +
+	'unitPrice="'     + document.attributesForm.unitPrice.value + '" ' +
+	'department="'    + document.attributesForm.department.value + '" ' +
+	'justification="' + document.attributesForm.justification.value + '" ';
+	
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecItemVoidFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	
+	numCommand++;
+	var encapsulatedLine = "";
+	if (document.attributesForm.voidLastItem.value == 0)
+	{
+		if (checkQuantity(document.attributesForm.quantity.value) == false)
+		{
+			return;
+		}
+		else if (checkUnitPrice(document.attributesForm.unitPrice.value) == false) 
+		{
+			return;
+		}
+		var myAlphaNumericText = document.attributesForm.description.value;
+		myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+		myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+		encapsulatedLine = 'printRecItemVoid&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+		'description="'   + myAlphaNumericText + '" ' +
+		'quantity="'      + document.attributesForm.quantity.value + '" ' +
+		'unitPrice="'     + document.attributesForm.unitPrice.value + '" ' +
+		'department="'    + document.attributesForm.department.value + '" ' +
+		'justification="' + document.attributesForm.justification.value + '" ';
+	}
+	else
+	{
+		if (document.attributesForm.operator.value > 49)
+		{
+			numCommand--;
+			alert (operatorOffsetWarningMessage);
+			return;
+		}
+		encapsulatedLine = 'printRecItemVoid&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+		'voidLastItem="' + document.attributesForm.voidLastItem.value + '" ';
+	}
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecItemAdjustmentFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	else if (checkAmount(document.attributesForm.amount.value) == false)
+	{
+		return;
+	}
+	else if (document.attributesForm.adjustmentType.value != 0 &&
+			document.attributesForm.adjustmentType.value != 3 &&
+			document.attributesForm.adjustmentType.value != 5 &&
+			document.attributesForm.adjustmentType.value != 8)
+	{
+		alert("Adjustment Type must be either 0, 3, 5 or 8");
+		return;
+	}
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.description.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var encapsulatedLine = 'printRecItemAdjustment&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'adjustmentType="' + document.attributesForm.adjustmentType.value + '" ' +
+	'description="'    + myAlphaNumericText  + '" ' +
+	'amount="'         + document.attributesForm.amount.value + '" ' +
+	'department="'     + document.attributesForm.department.value + '" ' +
+	'justification="'  + document.attributesForm.justification.value + '" ';
+
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecItemAdjustmentVoidFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printRecItemAdjustmentVoid&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecMessageFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	if (fileSubType == "fiscalReceipt" || fileSubType == "creditNote" || fileSubType == "refundDoc" || fileSubType == "cancelDoc")
+	{
+		if (document.attributesForm.messageType.value == 5 || document.attributesForm.messageType.value == 6)
+		{
+			alert("Message types 5 and 6 are only used with last receipt invoices and direct invoices");
+			return;
+		}
+		if ((beginFiscRecLineAdded == true || creditNoteOpened == true || refundDocOpened == true || cancelDocOpened == true) && document.attributesForm.messageType.value == 1)
+		{
+			alert("Message type 1 lines have to be placed before beginFiscalReceipt or before open credit note, refund doc or cancel doc commmand");
+			return;
+		}
+		if (creditNoteOpened == true && document.attributesForm.messageType.value == 4 && document.attributesForm.message.value.substring(0, 16) == "PRATICA DI RESO ")
+		{
+			alert('Credit note already open - "PRATICA DI RESO " prefix line will be ignored');
+		}
+		if (beginFiscRecLineAdded == false && creditNoteOpened == false && refundDocOpened == false && cancelDocOpened == false)
+		{
+			if (document.attributesForm.messageType.value == 1 && document.attributesForm.message.value.substring(0, 16) == "PRATICA DI RESO ")
+			{
+				alert('Message type 1 lines with the "PRATICA DI RESO " message prefix are ignored');
+			}
+			else if (document.attributesForm.messageType.value == 2)
+			{
+				alert('Message type 2 lines have to be placed after beginFiscalReceipt or after open credit note command');
+				return;
+			}
+			else if (document.attributesForm.messageType.value == 3)
+			{
+				alert('Message type 3 lines placed before beginFiscalReceipt or before open credit note command are only accepted if RESET RIGHE PROMO parameter is set to NO');
+			}
+			else if (document.attributesForm.messageType.value == 4)
+			{
+				if (document.attributesForm.message.value.substring(0, 16) == "PRATICA DI RESO " || document.attributesForm.message.value.substring(0, 13) == "RESO MERCE N." || document.attributesForm.message.value.substring(0, 15) == "ANNULLAMENTO N.")
+				{
+					if (fileSubType == "fiscalReceipt")
+					{	
+						alert('Message type 4 lines with the special prefix are reserved for credit notes, refund docs and cancel docs');
+						return;
+					}
+					else if (fileSubType == "creditNote")
+					{
+						creditNoteOpened = true;
+					}
+					else if (fileSubType == "refundDoc")
+					{
+						refundDocOpened = true;
+					}
+					else if (fileSubType == "cancelDoc")
+					{
+						cancelDocOpened = true;
+					}
+				}
+			}
+		}
+	}	
+	else if (fileType == "printerNonFiscal")
+	{
+		if (beginNonFiscLineAdded == false && document.attributesForm.messageType.value != 1)
+		{
+			alert(beginNonFiscLineNotAddedMessage);
+			return;
+		}
+		else if (beginNonFiscLineAdded == true && document.attributesForm.messageType.value != 8)
+		{
+			alert("Message type must be 8 in the body of non-fiscal receipts");
+			return;
+		}
+	}
+	else if (fileSubType == "lastReceipt" || fileSubType == "directInvoice")
+	{
+		if (beginFiscDocLineAdded == false)
+		{
+			if (document.attributesForm.messageType.value < 5 || document.attributesForm.messageType.value > 6)
+			{
+				if (fileSubType == "lastReceiptInvoice")
+				{
+					alert ("Message Type must be 5 or 6 with last receipt invoices");
+				}
+				else if (fileSubType == "directInvoice")
+				{
+					alert ("Message Type must be 5 or 6 with direct invoices when placed before beginFiscalDocument");
+				}
+				return;
+			}
+			if (document.attributesForm.messageType.value == 5 && document.attributesForm.index.value > 20)
+			{
+				alert ("A maximum of 20 Message Type 5 lines can be printed");
+				return;
+			}
+			if (document.attributesForm.messageType.value == 6 && document.attributesForm.index.value > 5)
+			{
+				alert ("A maximum of 5 Message Type 6 lines can be printed");
+				return;
+			}
+		}
+		else if (beginFiscDocLineAdded == true)
+		{
+			if (fileSubType == "directInvoice" && document.attributesForm.messageType.value != 4)
+			{
+				alert ("Only message type 4 lines can be used in the body of direct invoices");
+				return;
+			}
+			else if (fileSubType == "lastReceiptInvoice")
+			{
+				alert ("No more lines can be added in the case of a Last Receipt Invoice");
+				return;
+			}
+		}
+	}
+	
+	numCommand++;
+	var encapsulatedLine = 'printRecMessage&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'messageType="' + document.attributesForm.messageType.value + '" ';
+	if (document.attributesForm.messageType.value != 4 && document.attributesForm.messageType.value != 7 && document.attributesForm.messageType.value != 8) // With message types 4, 7 and 8, the index has no significance
+	{
+		encapsulatedLine = encapsulatedLine + 'index="' + document.attributesForm.index.value + '" ';
+	}
+	
+	if (document.attributesForm.messageType.value < 4) // With message types 4, 5, 6 and 7 the font is always "normal". If font attribute not present, fpmate.cgi sets font="1"
+	{
+		encapsulatedLine = encapsulatedLine + 'font="' + document.attributesForm.font.value + '" ';
+	}
+	if (document.attributesForm.messageType.value == 8)
+	{
+		encapsulatedLine = encapsulatedLine + 'clearEFTPOSBuffer="' + document.attributesForm.clearEFTPOSBuffer.value + '" ';
+	}
+	else
+	{
+		var myAlphaNumericText = document.attributesForm.message.value;
+		myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+		myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+		encapsulatedLine = encapsulatedLine + 'message="' + myAlphaNumericText + '" ';
+	}		
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecRefundFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	else if (checkQuantity(document.attributesForm.quantity.value) == false)
+	{
+		return;
+	}
+	else if (checkUnitPrice(document.attributesForm.unitPrice.value) == false) 
+	{
+		return;
+	}
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.description.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var encapsulatedLine = 'printRecRefund&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'description="'   + myAlphaNumericText + '" ' +
+	'quantity="'      + document.attributesForm.quantity.value + '" ' +
+	'unitPrice="'     + document.attributesForm.unitPrice.value + '" ' +
+	'department="'    + document.attributesForm.department.value + '" ' +
+	'justification="' + document.attributesForm.justification.value + '" ';
+	
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecSubtotalFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printRecSubtotal&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'option="' + document.attributesForm.option.value + '" ';
+	
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecSubtotalAdjustmentFunc()
+{
+	if (checkBegin(fileSubType) < 0)
+	{
+		return;
+	}
+	else if(checkAmount(document.attributesForm.amount.value) == false)
+	{
+		return;
+	}
+	else if (document.attributesForm.adjustmentType.value != 1 &&
+			document.attributesForm.adjustmentType.value != 2 &&
+			document.attributesForm.adjustmentType.value != 6 &&
+			document.attributesForm.adjustmentType.value != 7)
+	{
+		alert("Adjustment Type must be either 1, 2, 6 or 7");
+		return;
+	}
+	else if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.description.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var encapsulatedLine = 'printRecSubtotalAdjustment&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'adjustmentType="' + document.attributesForm.adjustmentType.value + '" ' +
+	'description="'    + myAlphaNumericText + '" ' +
+	'amount="'         + document.attributesForm.amount.value + '" ' +
+	'justification="'  + document.attributesForm.justification.value + '" ';
+	
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtRecTotalFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	var encapsulatedLine = "";
+	if (fileSubType == "fiscalReceipt" || fileSubType == "directInvoice")
+	{
+		if (document.attributesForm.payment.value == "")
+		{
+			alert("Payment amount not set");
+			return;
+		}
+		else if (document.attributesForm.payment.value < 0)
+		{
+			alert("Payment cannot be negative");
+			return;
+		}
+		else if (isNaN(document.attributesForm.payment.value))
+		{
+			alert("Payment must be a number");
+			return;
+		}
+		else if (document.attributesForm.index.value > 5 && document.attributesForm.paymentType.value == 0)
+		{
+			alert("Index cannot be greater than 5 with type 0 payments");
+			return;
+		}
+		else if (document.attributesForm.index.value > 10 && (document.attributesForm.paymentType.value == 2 || document.attributesForm.paymentType.value == 3))
+		{
+			alert("Index cannot be greater than 5 with type " + document.attributesForm.paymentType.value + " payments");
+			return;
+		}
+		
+		var myAlphaNumericText = document.attributesForm.description.value;
+		myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+		myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+		encapsulatedLine = 'printRecTotal&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+		'description="'   + myAlphaNumericText + '" ' +
+		'payment="'       + document.attributesForm.payment.value + '" ' +
+		'paymentType="'   + document.attributesForm.paymentType.value + '" ' +
+		'index="'         + document.attributesForm.index.value + '" ' +
+		'justification="' + document.attributesForm.justification.value + '" ';
+	}
+	else if (fileSubType == "creditNote" || fileSubType == "refundDoc" || fileSubType == "cancelDoc")
+	{
+		encapsulatedLine = 'printRecTotal&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	}
+
+	numCommand++;
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtBarCodeFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (fileType != "printerTicket" && document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	if (fileSubType == "fiscalReceipt" || fileSubType == "creditNote")
+	{
+		if (printBarCodeLineAdded == true)
+		{
+			alert("Only one barcode can be printed on fiscal receipts and credit notes");
+			return;
+		}
+	}
+	var myAlphaNumericText = "";
+	var encapsulatedLine = "";
+	var qRCodeAlignment = "";
+	var qRCodeSize = "";
+	var qRCodeDataType = "";
+	var qRCodeErrorCorrection = "";
+	var position = "";
+	var width = "";
+	var height = "";
+	var hRIPosition = "";
+	var hRIFont = "";
+	var codeType = "";
+	if (fileSubType == "fiscalReceipt" || fileSubType == "creditNote" || fileType == "printerNonFiscal")
+	{
+		myAlphaNumericText = document.attributesForm.code.value;
+		myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+		myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+		encapsulatedLine = 'printBarCode&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+		qRCodeAlignment = document.attributesForm.qRCodeAlignment.value;
+		qRCodeSize = document.attributesForm.qRCodeSize.value;
+		qRCodeDataType = document.attributesForm.qRCodeDataType.value;
+		qRCodeErrorCorrection = document.attributesForm.qRCodeErrorCorrection.value;
+		position = document.attributesForm.position.value;
+		width = document.attributesForm.width.value;
+		height = document.attributesForm.height.value;
+		hRIPosition = document.attributesForm.hRIPosition.value;
+		hRIFont = document.attributesForm.hRIFont.value;
+		codeType = document.attributesForm.codeType.value;
+	}
+	else if (fileType == "printerTicket")
+	{
+		myAlphaNumericText = document.biglietteriaTicketAttributesForm.code.value;
+		myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+		myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+		encapsulatedLine = 'printBarCode&nbsp;&nbsp;';
+		qRCodeAlignment = document.biglietteriaTicketAttributesForm.qRCodeAlignment.value;
+		qRCodeSize = document.biglietteriaTicketAttributesForm.qRCodeSize.value;
+		qRCodeDataType = document.biglietteriaTicketAttributesForm.qRCodeDataType.value;
+		qRCodeErrorCorrection = document.biglietteriaTicketAttributesForm.qRCodeErrorCorrection.value;
+		position = document.biglietteriaTicketAttributesForm.position.value;
+		width = document.biglietteriaTicketAttributesForm.width.value;
+		height = document.biglietteriaTicketAttributesForm.height.value;
+		hRIPosition = document.biglietteriaTicketAttributesForm.hRIPosition.value;
+		hRIFont = document.biglietteriaTicketAttributesForm.hRIFont.value;
+		codeType = document.biglietteriaTicketAttributesForm.codeType.value;
+	}
+	if (document.attributesForm.codeType.value.substring(0,6) == "QRCODE")
+	{
+		encapsulatedLine = encapsulatedLine +
+		'qRCodeAlignment="'       + qRCodeAlignment + '" ' +
+		'qRCodeSize="'            + qRCodeSize + '" ' +
+		'qRCodeDataType="'		  + qRCodeDataType + '" ' +
+		'qRCodeErrorCorrection="' + qRCodeErrorCorrection + '" ';
+	}
+	else // normal barcode
+	{
+		if (position == "")
+		{
+			alert("Position must be set");
+			return;
+		}
+		else if ((position < 0 || position > 511) && position != 900 && position != 901 && position != 902)
+		{
+			alert("position values range from 0 to 511 and from 900 to 902");
+			return;
+		}
+		else if (width == "")
+		{
+			alert("Width must be set");
+			return;
+		}
+		else if (width < 1 || width > 6)
+		{
+			alert("Width values range from 1 to 6");
+			return;
+		}
+		else if (height == "")
+		{
+			alert("Height must be set");
+			return;
+		}
+		else if (height < 1 || height > 255)
+		{
+			alert("Height values range from 1 to 255");
+			return;
+		}
+		
+		encapsulatedLine = encapsulatedLine +
+		'position="'    + position + '" ' +
+		'width="'       + width + '" ' +
+		'height="'      + height + '" ' +
+		'hRIPosition="' + hRIPosition + '" ' +
+		'hRIFont="'     + hRIFont + '" ';
+	}
+	if (myAlphaNumericText == "")
+	{
+		alert("Code is not set");
+		return;
+	}
+	encapsulatedLine = encapsulatedLine +
+	'codeType="' + codeType + '" ' +
+	'code="'     + myAlphaNumericText + '" ';
+	numCommand++;
+	printBarCodeLineAdded = true;
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function endFiscalRecFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'endFiscalReceipt&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function beginNonFiscalFunc()
+{
+	if (beginNonFiscLineAdded == true)
+	{
+		alert("Begin Non-fiscal Receipt command already sent");
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'beginNonFiscal&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	beginNonFiscLineAdded = true;
+}
+
+function prtNormalFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.data.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var encapsulatedLine = 'printNormal&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'font="' + document.attributesForm.font.value + '" ' +
+	'data="' + myAlphaNumericText + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	beginNonFiscLineAdded = true;
+	// clearMyAttributes();
+}
+
+function prtGraCoupFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	elementTag = "printGraphicCoupon";
+	prepareBase64WindowandButton();
+}
+
+function setLogoFunc()
+{
+	if (fileType == "printerNonFiscal" && checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	elementTag = "setLogo";
+	
+	if (fileType == "printerCommand")
+	{
+		var encapsulatedLine = 'setLogo&nbsp;&nbsp;' +
+		'location="' + document.printerCommandAttributesForm.location.value + '" ' +
+		'index="' + document.printerCommandAttributesForm.index.value + '" ';
+		prepareHTML_XML(encapsulatedLine);
+	}
+	else if (fileType == "printerNonFiscal" && document.attributesForm.option.value == 2)
+	{
+		var encapsulatedLine = 'setLogo&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+		'location="' + document.attributesForm.location.value + '" ' +
+		'index="'    + document.attributesForm.index.value + '" ' +
+		'option="'   + document.attributesForm.option.value + '" ';
+		prepareHTML_XML(encapsulatedLine);
+	}
+	else // Means logo uploading
+	{
+		if (document.attributesForm.index.value == "0" && document.attributesForm.graphicFormat.value == "B")
+		{
+			alert("Index cannot be zero with BMP option");
+			numCommand--;
+			return;
+		}
+		prepareBase64WindowandButton();
+	}
+}
+
+function prepareBase64WindowandButton()
+{
+	document.getElementById('blocco_tabs').style.visibility = 'hidden';
+	document.getElementById('myHeaderText').innerHTML = insertBase64Text;
+	document.getElementById('clearBase64WindowButton').style.visibility = "visible";
+	document.getElementById('insertBase64Button').style.visibility = "visible";
+	document.getElementById('base64Window').style.visibility = 'visible';
+	document.getElementById('XMLTable').style.visibility = 'hidden';
+}
+
+function insertBase64Func()
+{
+		if (document.getElementById("base64Window").value.length == 0)
+		{
+			alert("No data");
+			return;
+		}
+		
+		if (document.getElementById("base64Window").value.length % 4 != 0)
+		{
+			alert("Base 64 length must be divisible by 4");
+			return;
+		}
+
+		closebase64Window();
+
+		var encapsulatedLinePre = "";
+		if (elementTag == "setLogo")
+		{
+			if (document.attributesForm.option.value == "0") // Upload and program SET 15
+			{
+				encapsulatedLinePre = elementTag + '&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+				'location="'      + document.attributesForm.location.value + '" ' +
+				'index="'         + document.attributesForm.index.value + '" ' +
+				'option="'        + document.attributesForm.option.value + '" ' +
+				'graphicFormat="' + document.attributesForm.graphicFormat.value + '" ' + 
+				'data="base64Data"'; // For backward compatibility;
+			}
+			else if (document.attributesForm.option.value == "1" && document.attributesForm.graphicFormat.value == "B") // Upload only - BMP
+			{
+				encapsulatedLinePre = elementTag + '&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+				'index="'         + document.attributesForm.index.value + '" ' +
+				'option="'        + document.attributesForm.option.value + '" ' +
+				'graphicFormat="' + document.attributesForm.graphicFormat.value + '" ' +
+				'data="base64Data"'; // For backward compatibility
+			}
+			else if (document.attributesForm.option.value == "1" && document.attributesForm.graphicFormat.value == "R") // Upload only - Raster
+			{
+				encapsulatedLinePre = elementTag + '&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+				'option="' + document.attributesForm.option.value + '" ' +
+				'graphicFormat="' + document.attributesForm.graphicFormat.value + '" ' + 
+				'data="base64Data"'; // For backward compatibility
+			}
+		}
+		else
+		{ // must be printGraphicCoupon
+			encapsulatedLinePre = elementTag + '&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+			'graphicFormat="' + document.attributesForm.graphicFormat.value + '" ' + 
+			'data="base64Data"'; // For backward compatibility
+		}
+		
+		document.getElementById("command" + numCommand).innerHTML = '&lt;' + encapsulatedLinePre + '&gt;' +
+		document.getElementById("base64Window").value + '&lt;' + '/' + elementTag + '&gt;';
+		encapsulatedLinePre = manageXMLSpaces(encapsulatedLinePre);
+		cumulative_XML_Lines = cumulative_XML_Lines + '<' + encapsulatedLinePre + '>' +
+		document.getElementById("base64Window").value + '<' + '/' + elementTag + '>\n';	
+}
+
+function closebase64Window()
+{
+		document.getElementById('blocco_tabs').style.visibility = 'visible';
+		document.getElementById('myHeaderText').innerHTML = createXMLModeHeaderText;
+		document.getElementById('clearBase64WindowButton').style.visibility = "hidden";
+		document.getElementById('insertBase64Button').style.visibility = "hidden";
+		document.getElementById('base64Window').style.visibility = 'hidden';
+		document.getElementById('XMLTable').style.visibility = 'visible';
+}
+
+function endNonFiscalFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'endNonFiscal&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function prtXReportFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printXReport&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function prtZReportFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printZReport&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function prtXZReportFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printXZReport&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function queryContentByDateFunc()
+{
+	
+	if (verifyContentByDateAttributes() == false)
+	{
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'queryContentByDate&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'dataType="'  +	document.printerCommandAttributesForm.dataType.value + '" ' +
+	'fromDay="'   +	document.printerCommandAttributesForm.fromDay.value + '" ' +
+	'fromMonth="' +	document.printerCommandAttributesForm.fromMonth.value + '" ' +
+	'fromYear="'  +	document.printerCommandAttributesForm.fromYear.value + '" ' +
+	'toDay="'     +	document.printerCommandAttributesForm.toDay.value + '" ' +
+	'toMonth="'   +	document.printerCommandAttributesForm.toMonth.value + '" ' +
+	'toYear="'    +	document.printerCommandAttributesForm.toYear.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function queryContentByNumbersFunc()
+{
+	if (verifyContentByNumbersAttributes() == false)
+	{
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'queryContentByNumbers&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'dataType="'   + document.printerCommandAttributesForm.dataType.value + '" ' +
+	'day="'        + document.printerCommandAttributesForm.day.value + '" ' +
+	'month="'      + document.printerCommandAttributesForm.month.value + '" ' +
+	'year="'       + document.printerCommandAttributesForm.year.value + '" ' +
+	'fromNumber="' + document.printerCommandAttributesForm.fromNumber.value + '" ' +
+	'toNumber="'   + document.printerCommandAttributesForm.toNumber.value +	'" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function printContentByDateFunc()
+{
+	if (verifyContentByDateAttributes() == false)
+	{
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printContentByDate&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'dataType="'  +	document.printerCommandAttributesForm.dataType.value + '" ' +
+	'fromDay="'   +	document.printerCommandAttributesForm.fromDay.value + '" ' +
+	'fromMonth="' +	document.printerCommandAttributesForm.fromMonth.value + '" ' +
+	'fromYear="'  +	document.printerCommandAttributesForm.fromYear.value + '" ' +
+	'toDay="'     +	document.printerCommandAttributesForm.toDay.value + '" ' +
+	'toMonth="'   +	document.printerCommandAttributesForm.toMonth.value + '" ' +
+	'toYear="'    +	document.printerCommandAttributesForm.toYear.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function printContentByNumbersFunc()
+{
+	if (verifyContentByNumbersAttributes() == false)
+	{
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine ='printContentByNumbers&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'dataType="' +	document.printerCommandAttributesForm.dataType.value + '" ' +
+	'day="' +	document.printerCommandAttributesForm.day.value + '" ' +
+	'month="' +	document.printerCommandAttributesForm.month.value + '" ' +
+	'year="' +	document.printerCommandAttributesForm.year.value + '" ' +
+	'fromNumber="' +	document.printerCommandAttributesForm.fromNumber.value + '" ' +
+	'toNumber="' +	document.printerCommandAttributesForm.toNumber.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function verifyContentByDateAttributes()
+{
+	var myFromDateConcatenation = "" + document.printerCommandAttributesForm.fromYear.value +
+	document.printerCommandAttributesForm.fromMonth.value + 
+	document.printerCommandAttributesForm.fromDay.value;
+	
+	var myToDateConcatenation = "" + document.printerCommandAttributesForm.toYear.value +
+	document.printerCommandAttributesForm.toMonth.value + 
+	document.printerCommandAttributesForm.toDay.value;
+	
+	if (parseInt(myFromDateConcatenation) > parseInt(myToDateConcatenation))
+	{
+		alert("From Date cannot be greater than To Date");
+		return false;
+	}
+	else if (verifyDayMonthYear(document.printerCommandAttributesForm.fromDay.value, document.printerCommandAttributesForm.fromMonth.value, document.printerCommandAttributesForm.fromYear.value) == false)
+	{
+		return false;
+	}
+	else if (verifyDayMonthYear(document.printerCommandAttributesForm.toDay.value, document.printerCommandAttributesForm.toMonth.value, document.printerCommandAttributesForm.toYear.value) == false)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function verifyContentByNumbersAttributes()
+{
+	if (isNaN(document.printerCommandAttributesForm.fromNumber.value) || isNaN(document.printerCommandAttributesForm.toNumber.value))
+	{
+		alert("Both From Number and To Number must be numeric");
+		return false;	
+	}
+	else if (document.printerCommandAttributesForm.fromNumber.value > document.printerCommandAttributesForm.toNumber.value)
+	{
+		alert("From Number cannot be greater than To Number");
+		return false;
+	}
+	else if (document.printerCommandAttributesForm.fromNumber.value == "" || document.printerCommandAttributesForm.toNumber.value == "")
+	{
+		alert("Both From Number and To Number must be set");
+		return false;
+	}
+	else if (verifyDayMonthYear(document.printerCommandAttributesForm.day.value, document.printerCommandAttributesForm.month.value, document.printerCommandAttributesForm.year.value) == false)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function verifyDayMonthYear(myDay, myMonth, myYear)
+{
+	if (myMonth == "04" || myMonth == "06" || myMonth == "09" || myMonth == "11")
+	{
+		if (myDay == "31")
+		{
+			alert("Invalid date - " + myDay + "/" + myMonth);
+			return false;
+		}
+	}
+	else if (myMonth == "02")
+	{
+		if (myDay == "30" || myDay == "31")
+		{
+			alert("Invalid date - " + myDay + "/" + myMonth);
+			return false;
+		}
+		else if (myYear % 4 != 0 && myDay == "29") // Leap year check
+		{
+			alert("Invalid date - " + myDay + "/" + myMonth + ".\n" + myYear + " is not a leap year.");
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function queryPrinterStatusFunc()
+{
+	numCommand++;
+	var encapsulatedLine ='queryPrinterStatus&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'statusType="' + document.printerCommandAttributesForm.statusType.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function beginTrainingFunc()
+{
+	numCommand++;
+	var encapsulatedLine ='beginTraining ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function endTrainingFunc()
+{
+	numCommand++;
+	var encapsulatedLine ='endTraining ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function resetPrinterFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'resetPrinter&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function prtRecCashFunc()
+{
+	if (document.printerCommandAttributesForm.amount.value == "")
+	{
+		alert("Amount must be indicated");
+		return;
+	}
+	if (document.printerCommandAttributesForm.amount.value == 0)
+	{
+		alert("Amount cannot be zero");
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printRecCash&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'direction="' + document.printerCommandAttributesForm.direction.value + '" ' +
+	'form="' + document.printerCommandAttributesForm.form.value + '" ' +
+	'amount="' + document.printerCommandAttributesForm.amount.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+function prtDuplicateRecFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'printDuplicateReceipt&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function authorizeSalesFunc()
+{
+	if (document.printerCommandAttributesForm.amount.value == "")
+	{
+		alert("Amount must be indicated");
+		return;
+	}
+	if (document.printerCommandAttributesForm.amount.value == 0)
+	{
+		alert("Amount cannot be zero");
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'authorizeSales&nbsp;&nbsp;operator="' + document.printerCommandAttributesForm.operator.value + '" ' +
+	'amount="' + document.printerCommandAttributesForm.amount.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+	EFTPOS_Timeout = true;
+}
+
+function setDateFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'setDate&nbsp;&nbsp;' +
+	'day="' + document.printerCommandAttributesForm.day.value + '" ' +
+	'month="' + document.printerCommandAttributesForm.month.value + '" ' +
+	'year="' + document.printerCommandAttributesForm.year.value + '" ' +
+	'hour="' + document.printerCommandAttributesForm.hour.value + '" ' +
+	'minute="' + document.printerCommandAttributesForm.minute.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+
+function getDateFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'getDate ';
+	prepareHTML_XML(encapsulatedLine);
+	// clearMyAttributes();
+}
+
+
+function beginFiscalDocFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	if (beginFiscDocLineAdded == true)
+	{
+		alert("Begin Fiscal Document command already sent");
+		return;
+	}
+	if (verifyDocNumberDocAmount(document.attributesForm.documentNumber.value,"Document Number") == false)
+	{
+		return;
+	}
+	var encapsulatedLine = 'beginFiscalDocument&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'documentType="' + fileSubType + '" ';
+	if (fileSubType == "lastReceiptInvoice" || fileSubType == "directInvoice")
+	{
+		encapsulatedLine = encapsulatedLine + 'documentNumber="' + document.attributesForm.documentNumber.value + '" ';
+	}
+	/*else if (fileSubType == "freeInvoice" || fileSubType == "receiptBasedFreeInvoice")
+	{
+		if (verifyDocNumberDocAmount(document.attributesForm.documentAmount.value,"Document Amount") == false)
+		{
+			return;
+		}
+		encapsulatedLine = encapsulatedLine + 'documentAmount="' + document.attributesForm.documentAmount.value + '" ' +
+		'documentNumber="' + document.attributesForm.documentNumber.value + '" ';
+	}
+	*/
+	numCommand++;
+	prepareHTML_XML(encapsulatedLine);
+	beginFiscDocLineAdded = true;
+}
+
+function verifyDocNumberDocAmount(myDocAttribute, myAttributeName)
+{
+	if (myDocAttribute == "")
+	{
+		alert(myAttributeName + " must be set");
+		return false;
+	}
+	else if (isNaN(myDocAttribute))
+	{
+		alert(myAttributeName + " must be numeric");
+		return false;
+	}
+	else if (myDocAttribute < 0)
+	{
+		alert(myAttributeName + " must be zero or positive");
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function printFiscDocLineFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'printFiscalDocumentLine&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ' +
+	'font="' + document.attributesForm.font.value + '" ' +
+	'documentLine="' + document.attributesForm.documentLine.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function endFiscalDocFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'endFiscalDocument&nbsp;&nbsp;operator="' + document.attributesForm.operator.value + '" ';
+	if (fileSubType == "freeInvoice" || fileSubType == "receiptBasedFreeInvoice")
+	{
+		encapsulatedLine = encapsulatedLine + 'operationType="' + document.attributesForm.operationType.value + '" ';
+	}
+	prepareHTML_XML(encapsulatedLine);
+}
+
+
+function entTicketFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'enterTicket&nbsp;&nbsp;randomNum="' + document.biglietteriaTicketAttributesForm.randomNum.value + '" ' +
+	'controlCode="' + document.biglietteriaTicketAttributesForm.controlCode.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function begTicketFunc()
+{
+	if (beginTicketLineAdded == true)
+	{
+		alert("Begin Ticket command already sent");
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'beginTicket&nbsp;&nbsp;randomNum="' + document.biglietteriaTicketAttributesForm.randomNum.value + '" ' +
+	'controlCode="' + document.biglietteriaTicketAttributesForm.controlCode.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+	beginTicketLineAdded = true;
+}
+
+function prtTicketFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	if (document.biglietteriaTicketAttributesForm.textType.value == "S")
+	{
+		if (sigilloLineAdded == true)
+		{
+			alert("Only one Sigillo line per ticket");
+			return;
+		}
+		else
+		{
+			sigilloLineAdded = true;
+		}
+	}
+	numCommand++;
+	var encapsulatedLine = 'printTicket&nbsp;&nbsp;randomNum="' + document.biglietteriaTicketAttributesForm.randomNum.value + '" ' +
+	'controlCode="' + document.biglietteriaTicketAttributesForm.controlCode.value + '" ' +
+	'textType="' + document.biglietteriaTicketAttributesForm.textType.value + '" ' +
+	'font="' + document.biglietteriaTicketAttributesForm.font.value + '" ' +
+	'text="' + document.biglietteriaTicketAttributesForm.text.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function endTicketFunc()
+{
+	if (checkBegin() < 0)
+	{
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'endTicket&nbsp;&nbsp;randomNum="' + document.biglietteriaTicketAttributesForm.randomNum.value + '" ' +
+	'controlCode="' + document.biglietteriaTicketAttributesForm.controlCode.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function exitTicketFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'exitTicket&nbsp;&nbsp;randomNum="' + document.biglietteriaTicketAttributesForm.randomNum.value + '" ' +
+	'controlCode="' + document.biglietteriaTicketAttributesForm.controlCode.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function voidTicketFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'printTicketVoid&nbsp;&nbsp;randomNum="' + document.biglietteriaTicketAttributesForm.randomNum.value + '" ' +
+	'controlCode="' + document.biglietteriaTicketAttributesForm.controlCode.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+
+function textFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'text&nbsp;&nbsp;dw="0" dh="0" description="' + document.attributesForm.description.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function feedFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'feed&nbsp;&nbsp;type="1" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function barcodeFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'barcode&nbsp;&nbsp;width="' + document.attributesForm.width.value + '" ' +
+	'height="' + document.attributesForm.height.value + '" ' +
+	'type="' + document.attributesForm.codeType.value + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function cutFunc()
+{
+	numCommand++;
+	var encapsulatedLine = 'cut&nbsp;&nbsp;type="feed" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function openDrawerFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var encapsulatedLine = 'openDrawer&nbsp;&nbsp;operator="';
+	if (fileType == "printerCommand")
+	{
+		 encapsulatedLine = encapsulatedLine + document.printerCommandAttributesForm.operator.value + '" ';
+	}
+	else
+	{
+		encapsulatedLine = encapsulatedLine + document.attributesForm.operator.value + '" ';
+	}
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function directIOFunc()
+{
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.data.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var encapsulatedLine = 'directIO&nbsp;&nbsp;' +
+	'command="' + document.attributesForm.command.value + '" ' +
+	'data="' + myAlphaNumericText + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function clearTextFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var myOperator = "";
+	if (fileType == "printerCommand")
+	{
+		myOperator = document.printerCommandAttributesForm.operator.value;
+	}
+	else
+	{
+		myOperator = document.attributesForm.operator.value;
+	}
+	var encapsulatedLine = 'clearText&nbsp;&nbsp;operator="' + myOperator + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function displayTextFunc()
+{
+	if (document.attributesForm.operator.value > 49)
+	{
+		alert(operatorOffsetWarningMessage);
+		return;
+	}
+	numCommand++;
+	var myAlphaNumericText = document.attributesForm.data.value;
+	myAlphaNumericText = manageEscapeChars(myAlphaNumericText);
+	myAlphaNumericText = manageHTMLSpaces(myAlphaNumericText);
+	var myOperator = "";
+	if (fileType == "printerCommand")
+	{
+		myOperator = document.printerCommandAttributesForm.operator.value;
+	}
+	else
+	{
+		myOperator = document.attributesForm.operator.value;
+	}
+	var encapsulatedLine = 'displayText&nbsp;&nbsp;' +
+	'operator ="' + myOperator + '" ' +
+	'data="' + myAlphaNumericText + '" ';
+	prepareHTML_XML(encapsulatedLine);
+}
+
+function prepareHTML_XML(encapsulatedLine)
+{
+	document.getElementById("command" + numCommand).innerHTML = '&lt;' + encapsulatedLine + '/&gt;';
+	encapsulatedLine = manageXMLSpaces(encapsulatedLine);
+	cumulative_XML_Lines = cumulative_XML_Lines + '<' + encapsulatedLine + '/>\n';
+}
+
+function sendRequest(myForm, myQueryString)
+{
+	var e = new FormData(document.forms.namedItem(myForm));
+	var req = new XMLHttpRequest();
+	// req.open('GET', url + "?id=" + Math.random(), false); // ?id=Math.random forces a reload instead of using cache
+	req.open('POST', "/cgi-bin/fpmate.cgi" + myQueryString, false);
+	//req.overrideMimeType('text\/plain; charset=x-user-defined');
+	// req.responseType = "arraybuffer";
+	alert ("Response Type = " + req.responseType);
+	// var epos = this;
+	/*req.onload = function () {
+		// receive response message
+		alert("req.readyState = " + req.readyState + "\n" + "req.status = " + req.status);
+		if (req.readyState == 4)
+		{
+			if (req.status == 200)
+			{
+				// var b = new Blob([req.response], {type: "text/plain"});
+				alert (req.responseText);
+				return req.responseText;
+			}
+			else
+			{
+				return '123';
+			}
+		}
+	}
+	*/
+	// req.send(null);
+	req.send(e);
+	
+
+	if (req.status != 200) {
+		return '';
+	}
+	alert(req.responseText);
+	return req.responseText;
+	
+	// req = null;
+}
+
+function checkBegin()
+{
+	if (beginFiscRecLineAdded == false &&
+		beginFiscDocLineAdded == false &&
+		beginNonFiscLineAdded == false &&
+		creditNoteOpened      == false &&
+		refundDocOpened       == false &&
+		cancelDocOpened       == false &&
+		beginTicketLineAdded  == false)
+	{
+		if (fileType == "printerFiscalReceipt")
+		{
+			if (fileSubType == "fiscalReceipt")
+			{
+				alert(beginFiscRecLineNotAddedMessage);
+			}
+			else if (fileSubType == "creditNote")
+			{
+				alert(creditNoteNotOpenMessage);
+			}
+			else if (fileSubType == "refundDoc")
+			{
+				alert(refundDocNotOpenMessage);
+			}
+			else if (fileSubType == "refundDoc")
+			{
+				alert(cancelDocNotOpenMessage);
+			}
+		}
+		else if (fileType == "printerNonFiscal")
+		{
+			alert(beginNonFiscLineNotAddedMessage);
+		}
+		else if (fileType == "printerFiscalDocument")
+		{
+			alert(beginFiscDocLineNotAddedMessage);
+		}
+		else if (fileType == "printerTicket")
+		{
+			alert(beginTicketLineNotAddedMessage);
+		}
+		return -1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+function checkQuantity(myQuantity)
+{
+	if (myQuantity == "")
+	{
+		alert("Quantity must be set");
+		return false;
+	}
+	else if (myQuantity < 0)
+	{
+		alert("Quantity must be positive");
+		return false;
+	}
+	else if (myQuantity == 0)
+	{
+		alert("Quantity cannot be zero");
+		return false;
+	}
+	else if (isNaN(myQuantity) && myQuantity.indexOf(",") == -1 && myQuantity.indexOf(".") == -1)
+	{
+		alert("Quantity must be a number");
+		return false;
+	}
+	else if (myQuantity.indexOf(",") != -1 && myQuantity.indexOf(".") != -1)
+	{
+		alert("Quantity must contain only one decimal separator (, or .)");
+		return false;
+	}
+	else if ((myQuantity.indexOf(",") != -1 && myQuantity.indexOf(",") < (myQuantity.length - 4)) || (myQuantity.indexOf(".") != -1 && myQuantity.indexOf(".") < (myQuantity.length - 4)))
+	{
+		alert("Quantity must contain a maximum of three decimal places");
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function checkUnitPrice(myUnitPrice)
+{
+	if (myUnitPrice== "")
+	{
+		alert("Unit Price must be set");
+		return false;
+	}
+	else if (myUnitPrice < 0)
+	{
+		alert("Unit Price must be positive");
+		return false;
+	}
+	else if (isNaN(myUnitPrice) && myUnitPrice.indexOf(",") == -1 && myUnitPrice.indexOf(".") == -1)
+	{
+		alert("Unit Price must be a number");
+		return false;
+	}
+	else if (myUnitPrice.indexOf(",") != -1 && myUnitPrice.indexOf(".") != -1)
+	{
+		alert("Unit Price must contain only one decimal separator (, or .)");
+		return false;
+	}
+	else if ((myUnitPrice.indexOf(",") != -1 && myUnitPrice.indexOf(",") < (myUnitPrice.length - 3)) || (myUnitPrice.indexOf(".") != -1 && myUnitPrice.indexOf(".") < (myUnitPrice.length - 3)))
+	{
+		alert("Unit Price must contain a maximum of two decimal places");
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function checkAmount(myAmount)
+{
+	if (myAmount == "")
+	{
+		alert("Amount must be set");
+		return false;
+	}
+	else if (myAmount < 0)
+	{
+		alert("Amount must be positive");
+		return false;
+	}
+	else if (myAmount == 0)
+	{
+		alert("Amount cannot be zero");
+		return false;
+	}
+	else if (isNaN(myAmount) && myAmount.indexOf(",") == -1 && myAmount.indexOf(".") == -1)
+	{
+		alert("Amount must be a number");
+		return false;
+	}
+	else if (myAmount.indexOf(",") != -1 && myAmount.indexOf(".") != -1)
+	{
+		alert("Amount must contain only one decimal separator (, or .)");
+		return false;
+	}
+	else if ((myAmount.indexOf(",") != -1 && myAmount.indexOf(",") < (myAmount.length - 3)) || (myAmount.indexOf(".") != -1 && myAmount.indexOf(".") < (myAmount.length - 3)))
+	{
+		alert("Amount must contain a maximum of two decimal places");
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
+function OperatorInputFieldVisibility()
+{
+	if (document.getElementById('operatorOverride').style.visibility == 'hidden') {
+		document.getElementById('operatorOverride').style.visibility = 'visible';
+	}
+	else {
+		document.getElementById('operatorOverride').style.visibility = 'hidden';
+	}
+}
+
+/*function showBarCodeAttributes()
+{
+		document.getElementById('attributesTable').style.visibility = 'hidden';
+		document.getElementById('barCodeAttributesTable').style.visibility = 'visible';
+		document.getElementById('barCodeImage').style.visibility = 'hidden';
+		document.getElementById('goBackImage').style.visibility = 'visible';
+}
+
+function showAttributes()
+{
+		document.getElementById('barCodeAttributesTable').style.visibility = 'hidden';
+		document.getElementById('attributesTable').style.visibility = 'visible';
+		document.getElementById('goBackImage').style.visibility = 'hidden';
+		document.getElementById('barCodeImage').style.visibility = 'visible';
+}
+*/
+
+function showBarCodeAttributes()
+{
+		document.getElementById('attributesTable').style.visibility = 'hidden';
+		document.getElementById('barCodeAttributesTable').style.visibility = 'visible';
+		document.getElementById('showBarCodeAttributesButton').style.visibility = 'hidden';
+		document.getElementById('showAttributesButton').style.visibility = 'visible';
+}
+
+function showAttributes()
+{
+		document.getElementById('barCodeAttributesTable').style.visibility = 'hidden';
+		document.getElementById('attributesTable').style.visibility = 'visible';
+		document.getElementById('showAttributesButton').style.visibility = 'hidden';
+		document.getElementById('showBarCodeAttributesButton').style.visibility = 'visible';
+}
+
+function clearMyAttributes() // clearAttributes is a reserved name in IE
+{
+	document.attributesForm.description.value = "";
+	document.attributesForm.quantity.value = "";
+	document.attributesForm.unitPrice.value = "";
+	document.attributesForm.department.value = "1";
+	document.attributesForm.payment.value = "";
+	document.attributesForm.amount.value = "";
+	document.attributesForm.message.value = "";
+	document.attributesForm.command.value = "";
+	document.attributesForm.data.value = "";
+	document.attributesForm.documentNumber.value = "";
+	// document.attributesForm.documentAmount.value = "";
+	// document.attributesForm.documentLine.value = "";
+
+	document.printerCommandAttributesForm.amount.value = "";
+	document.printerCommandAttributesForm.fromNumber.value = "";
+	document.printerCommandAttributesForm.toNumber.value = "";
+
+	document.biglietteriaTicketAttributesForm.randomNum.value = "";
+	document.biglietteriaTicketAttributesForm.controlCode.value = "";
+	document.biglietteriaTicketAttributesForm.text.value = "";
+}
+
+function clearXML()
+{
+	for (var i = 1; i <= numCommand; i++)
+	{
+		document.getElementById("command" + i).innerHTML = "";
+	}
+	numCommand = 0;
+	cumulative_XML_Lines = "";
+	document.getElementById('pasteXMLWindow').value = "";
+}
+
+function clearFlags()
+{
+	beginFiscRecLineAdded = false;
+	creditNoteOpened      = false;
+	beginFiscDocLineAdded = false;	
+	beginNonFiscLineAdded = false;
+	beginTicketLineAdded  = false;
+	printBarCodeLineAdded = false;
+	sigilloLineAdded      = false;
+	fileType              = "";
+	fileSubType           = "";
+	EFTPOS_Timeout		  = false;
+}
+
+function clearResponseMessages()
+{
+	document.getElementById("blocco_receive_result").innerHTML = "";
+	document.getElementById("blocco_receive_add_info").innerHTML = "";
+}
+
+function devIdLineVisibility()
+{
+	if (document.printerSelectionForm.localPrinterCheckBox.checked == true) {
+		document.getElementById('devIdLine').style.visibility = 'hidden';
+	}
+	else {
+		document.getElementById('devIdLine').style.visibility = 'visible';
+	}
+}
+
+function crossDomain()
+{
+	if (document.crossDomainForm.crossDomainCheckBox.checked == true) {
+		document.getElementById('ipAddresses').style.visibility = 'visible';
+	}
+	else {
+		document.getElementById('ipAddresses').style.visibility = 'hidden';
+	}
+}
+
+function toggleXMLMode()
+{
+	if (XMLmode == "createXML")
+	{
+		XMLmode = "pasteXML";
+		document.getElementById('blocco_tabs').style.visibility = 'hidden';
+		document.getElementById('myHeaderText').innerHTML = pasteXMLModeHeaderText;
+		document.getElementById('clearPasteXMLWindowButton').style.visibility = 'visible';
+		
+		document.getElementById('pasteXMLWindow').style.visibility = 'visible';
+		document.getElementById('XMLTable').style.visibility = 'hidden';
+		
+		document.getElementById('toggleXMLButton').value = "Create XML";
+		document.getElementById('toggleXMLButton').title = createXMLTitle;
+		setAllCommandsTabsHidden();
+	}
+	else
+	{
+		XMLmode = "createXML";
+		document.getElementById('blocco_tabs').style.visibility = 'visible';
+		document.getElementById('myHeaderText').innerHTML = createXMLModeHeaderText;
+		document.getElementById('clearPasteXMLWindowButton').style.visibility = 'hidden';
+		
+		document.getElementById('pasteXMLWindow').style.visibility = 'hidden';
+		document.getElementById('XMLTable').style.visibility = 'visible';
+		
+		document.getElementById('toggleXMLButton').value = "Paste XML";
+		document.getElementById('toggleXMLButton').title = pasteXMLTitle;
+	}
+	if (fileType != "" && numCommand != 0)
+	{
+		document.getElementById('pasteXMLWindow').value = "<" + fileType + ">\n" + cumulative_XML_Lines + "</" + fileType + ">\n";
+	}
+	else
+	{
+		// DEBUG
+		// alert ("fileType = " + fileType + " numCommand = " + numCommand);
+		document.getElementById('pasteXMLWindow').value = "";
+	}
+}
+
+
+function startOver()
+{
+	clearXML();
+	clearFlags();
+	clearMyAttributes();
+	clearResponseMessages();
+	setAllCommandsTabsHidden();
+	setAllTabsBackgroundColorInactive();
+	if (XMLmode == "pasteXML")
+	{
+		toggleXMLMode();
+	}
+	closebase64Window();
+}
+
+
+function manageEscapeChars(myAlphaNumericText)
+{
+	// innerHTML and XML
+	myAlphaNumericText = myAlphaNumericText.replace(/\&/g, "&amp;"); // must be the first substitution
+	myAlphaNumericText = myAlphaNumericText.replace(/\</g, "&lt;");
+	myAlphaNumericText = myAlphaNumericText.replace(/\>/g, "&gt;");
+	myAlphaNumericText = myAlphaNumericText.replace(/\"/g, "&quot;");
+	myAlphaNumericText = myAlphaNumericText.replace(/\'/g, "&apos;");
+	return myAlphaNumericText;
+}
+
+function manageHTMLSpaces(myAlphaNumericText)
+{
+	// Only innerHTML. Convert single space to &nbsp;
+	myAlphaNumericText = myAlphaNumericText.replace(/ /g,"&nbsp;");
+	return myAlphaNumericText;
+}
+
+function manageXMLSpaces(encapsulatedLine)
+{
+	// Only XML. Convert &nbsp; to single space
+	encapsulatedLine = encapsulatedLine.replace(/\&nbsp\;/g," ");
+	return encapsulatedLine;
+}
+
+function singleSendToPrinter()
+{
+	clearResponseMessages();
+	document.getElementById("displayURL").innerHTML = "";
+	var epos = new epson.fiscalPrint();
+   	epos.onreceive = function (result, tag_names_array, add_info, res_add)
+   	{
+   		var add_info_text = "";
+   		var lowPaper = 0;
+   		if (tag_names_array.length > 0)
+   		{
+   			add_info_text = "Additional Information<br>";
+   			
+   			for (var i = 0; i < tag_names_array.length; i++)
+			{
+				if (tag_names_array[i] == "printerStatus" && add_info[tag_names_array[i]].substring(0, 1) == "2")
+				lowPaper = 1;
+				add_info_text =	add_info_text + tag_names_array[i] + " = ";
+				var tag_names_array_respaced = "";
+				for (var k = 0; k < add_info[tag_names_array[i]].length; k++)
+				{
+					if (add_info[tag_names_array[i]].substring(k, k + 1) == " ")
+					{
+						tag_names_array_respaced = tag_names_array_respaced + "&nbsp;";	
+					}
+					else
+					{
+						tag_names_array_respaced = tag_names_array_respaced + add_info[tag_names_array[i]].substring(k, k + 1);
+					}
+				} // end for (var k = 0; k < add_info[tag_names_array[i]].length; k++)
+				
+				add_info_text =	add_info_text + tag_names_array_respaced + "<br>";
+				if (tag_names_array[i] == "lineCount" || tag_names_array[i] == "deviceCount")
+				{
+					var node2;
+					var node_child2;
+					var node_val2;
+					var node_val2_respaced = "";
+					if (tag_names_array[i] == "lineCount")
+					{
+						for (var j = 1; j <= add_info[tag_names_array[i]]; j++)  // lineCount or deviceCount value
+						{
+							node2 = res_add[0].getElementsByTagName("lineNumber" + j)[0];
+							node_child2 = node2.childNodes[0];
+							try
+							{
+								node_val2 = node_child2.nodeValue;
+							}
+							catch(err) // Blank lines generate exceptions
+							{
+								// Add 46 spaces to make blank line
+								node_val2 = "                                              ";
+							}
+							
+							for (var k = 0; k < node_val2.length; k++)
+							{
+								if (node_val2.substring(k, k + 1) == " ")
+								{
+									node_val2_respaced = node_val2_respaced + "&nbsp;";	
+								}
+								else
+								{
+									node_val2_respaced = node_val2_respaced + node_val2.substring(k, k + 1);
+								}
+							} // end for (var k = 0; k < node_val2.length; k++)
+	
+							add_info_text = add_info_text + "&nbsp;&nbsp;&nbsp;" + node_val2_respaced + "<BR>";
+							node_val2 = "";
+							node_val2_respaced = "";
+						} // End for (var j = 1; j <= add_info[tag_names_array[i]]; j++) 
+						add_info_text = '<font face="courier">' + add_info_text + '</font>'; // need to move to css
+					} // End if (tag_names_array[i] == "lineCount")
+
+					else if (tag_names_array[i] == "deviceCount")
+					{
+						var deviceAttributes = [
+							"deviceId",
+							"deviceIp",
+							"deviceType",
+							"deviceModel",
+							"deviceRetry"
+						];
+						for (var j = 1; j <= add_info[tag_names_array[i]]; j++)  // deviceCount value
+						{
+							add_info_text = add_info_text + "&nbsp;&nbsp;&nbsp;Device " + j + " has the following settings:<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+							for (var k = 0; k < deviceAttributes.length; k++)
+							{
+								try
+								{
+									node2 = res_add[0].getElementsByTagName("deviceNumber" + j)[0].attributes;
+									node_val2 = node2.getNamedItem(deviceAttributes[k]).nodeValue;
+								}
+								catch(err)
+								{
+									alert(err);
+								}
+								
+								add_info_text = add_info_text + deviceAttributes[k] + " = " + node_val2 + "&nbsp;";
+								node_val2 = "";
+							} // End for (var k = 0; k < deviceAttributes.length; k++)
+
+							add_info_text = add_info_text + "<p>";
+						} // End for (var j = 1; j <= add_info[tag_names_array[i]]; j++)
+					} // End else if (tag_names_array[i] == "deviceCount"
+				} // End if (tag_names_array[i] == "lineCount" || tag_names_array[i] == "deviceCount")
+			} // End for (var i = 0; i < tag_names_array.length; i++)
+		} 
+   		else {
+   			add_info_text = "No Additional Information";
+		} // End if (tag_names_array.length > 0)
+   		
+   		document.getElementById("blocco_receive_result").innerHTML = 
+   		"Success = " + result.success + "<br>" +
+   		"Code = " + result.code + "<br>" +
+   		"Status = " + result.status;
+   		
+		if (result.success == 0 && document.getElementById('multiSendButton').value == "Cancel")
+		{
+			document.printerSelectionForm.multiSendErrors.value++;
+		}
+   		document.getElementById("blocco_receive_add_info").innerHTML = add_info_text;
+   		
+   		if (lowPaper == 1)
+   		{
+   			document.getElementById('multiSendButton').value = "Multi Send";
+			document.getElementById('multiSendButton').title = multiSendStartTitle;
+			multi=window.clearInterval(multi);
+   		}
+   		
+		/*
+		document.getElementById("valore2").innerHTML = res.code;
+		document.getElementById("valore3").innerHTML = res.status;
+		document.getElementById("valore4").innerHTML = add_info.cpuRel;
+		document.getElementById("valore5").innerHTML = add_info.mfRel;
+		document.getElementById("valore6").innerHTML = add_info.mfStatus;
+		*/
+   		// clearXML();
+   		// clearMyAttributes();
+	} // End epos.onreceive = function (result, tag_names_array, add_info, res_add)
+	
+	epos.onerror = function (result)
+	{
+		
+		document.getElementById("blocco_receive_result").innerHTML = 
+		"Success = " + result.success + "<br>" +
+	        "Code = " + result.code + "<br>" +
+                "Status = " + + result.status;
+   		// clearXML();
+   		// clearMyAttributes();
+	} // End epos.onerror = function (result)
+	
+	// Root of singleSendToPrinter() function
+	var query_string = "";
+	if (document.printerSelectionForm.localPrinterCheckBox.checked == false) 
+	{
+		if (document.printerSelectionForm.devIdValue.value.length == 0)
+		{
+			alert("Please fill-in the Device ID field");
+			return;
+		}
+		else
+		{
+			query_string = query_string + "?devid=" + document.printerSelectionForm.devIdValue.value;
+		}
+	}
+	if (document.printerSelectionForm.fpmateCgiTimeout.value == "")
+	{
+		// Add nothing
+	}
+	else if (document.printerSelectionForm.fpmateCgiTimeout.value < 6000 && EFTPOS_Timeout == false)
+	{
+		alert("Timeout value below minimum, must be at least 6000");
+		return;
+	}
+	else if (document.printerSelectionForm.fpmateCgiTimeout.value < 60000 && EFTPOS_Timeout == true)
+	{
+		alert("Timeout value below minimum, must be at least 60000 when authorizeSales element used");
+		return;
+	}
+	else // Timeout checks complete - you can proceed
+	{
+		if (query_string == "")
+		{
+			(query_string = "?");
+		}
+		else
+		{
+			query_string = query_string + "&";
+		}
+		query_string = query_string + "timeout=" + document.printerSelectionForm.fpmateCgiTimeout.value;
+	}
+	
+	var data_to_send = "";
+	if (XMLmode == "createXML") {
+		data_to_send = "<" + fileType + ">\n" + cumulative_XML_Lines + "</" + fileType + ">\n";
+		// alert (data_to_send);
+	}
+	else {
+		data_to_send = document.getElementById("pasteXMLWindow").value;
+	}
+	// alert(data_to_send);
+	var xmlHTTPRequestDestination = "";
+	if (document.crossDomainForm.crossDomainCheckBox.checked == false) {
+		xmlHTTPRequestDestination = hostname;
+	}
+	else {
+		xmlHTTPRequestDestination = document.crossDomainForm.ipAddress1.value + "." +
+									document.crossDomainForm.ipAddress2.value + "." +
+									document.crossDomainForm.ipAddress3.value + "." +
+									document.crossDomainForm.ipAddress4.value;				
+	}
+	var xmlHTTPRequestURL = window.location.protocol + "//" + xmlHTTPRequestDestination +
+	"/cgi-bin/fpmate.cgi" + query_string;
+	document.getElementById("displayURL").innerHTML = "URL = " + xmlHTTPRequestURL;
+	epos.send(xmlHTTPRequestURL, data_to_send, document.printerSelectionForm.libraryTimeout.value);
+	data_to_send = ""; // Just in case
+}
+
+function multiSendToPrinter()
+{
+	if (document.getElementById('multiSendButton').value == "Cancel")
+	{
+		document.getElementById('multiSendButton').value = "Multi Send";
+		document.getElementById('multiSendButton').title = multiSendStartTitle;
+		multi=window.clearInterval(multi);
+	}
+	else // Must be Multi Send mode
+	{	
+		document.printerSelectionForm.multiSendCyclesCompleted.value = 0;
+		document.printerSelectionForm.multiSendErrors.value = 0;
+		if (document.printerSelectionForm.multiSendInterval.value < 9)
+		{
+			alert("Short interval - Please make sure that this is enough time to print all the document and send the reply.");
+		}
+		document.getElementById('multiSendButton').value = "Cancel";
+		document.getElementById('multiSendButton').title = multiSendCancelTitle;
+		sendInProgress=true;
+		singleSendToPrinter();
+		document.printerSelectionForm.multiSendCyclesCompleted.value++;
+		multi=self.setInterval(function(){singleSendToPrinter();document.printerSelectionForm.multiSendCyclesCompleted.value++;},document.printerSelectionForm.multiSendInterval.value * 1000);
+	}
+}
+
+function quantityIfOneCheckboxManagement()
+{
+	if (document.attributesForm.quantityIfOneCheckbox.checked == true && document.attributesForm.operator.value < 13)
+	{
+		document.attributesForm.operator.value = Number(document.attributesForm.operator.value) + 50;
+	}
+	else if (document.attributesForm.quantityIfOneCheckbox.checked == false && document.attributesForm.operator.value > 49)
+	{
+		document.attributesForm.operator.value = Number(document.attributesForm.operator.value) - 50;
+	}
+}
+
+
+function operatorChangeManagement()
+{
+	if (document.attributesForm.operator.value < 13)
+	{
+		document.attributesForm.quantityIfOneCheckbox.checked = false;
+	}
+	else if (document.attributesForm.operator.value > 49)
+	{
+		document.attributesForm.quantityIfOneCheckbox.checked = true;
+	}
+}
+
+
+</script>
+
+</HEAD>
+<BODY onload="preparePage()" onresize="setOuterMargins()">
+
+<div id="blocco_tabsHeader">
+<div id="blocco_tabs">
+
+<ol>
+	<li id="fpMateConfigurationTab" onclick="fpMateConfCommandsFunc()">fpMate<br>Configuration</li>
+	<li id="fiscalReceiptTab" title="Fiscal Receipts and Credit Notes" onclick="fiscalReceiptTypesFunc()">Fiscal<br>Receipt</li>
+	<li id="nonFiscalReceiptTab" onclick="nonFiscalReceiptCommandsFunc()">Non-fiscal<br>Receipt</li>
+	<li id="fiscalReportTab" onclick="fiscalReportCommandsFunc()">Fiscal<br>Report</li>
+	<li id="commandTab" onclick="commandCommandsFunc()">Printer<br>Command</li>
+	<li id="fiscalDocumentTab" title="Invoices" onclick="fiscalDocumentTypesFunc()">Fiscal<br>Document</li>
+	<li id="biglietteriaTicketTab"   title="Biglietteria Spettacolo" onclick="biglietteriaTicketCommandsFunc()">Biglietteria<br>Ticket</li>
+	<li id="eposPrintTab" title="Non-fiscal Printer Management" onclick="eposPrintCommandsFunc()">epos<br>Print</li>
+	<li id="commonCommandsTab" onclick="commonCommandsFunc()">Common<br>Commands</li>
+	<li><a href="../stato_stampante_con_fpmate_version/get_status.html" target="_top">STATUS</a></li>
+</ol>
+
+</div>
+<div id="myHeader">
+<h2 id="myHeaderText"></h2>
+</div>
+</div>
+<div id="outer">
+<div id="blocco_main">
+<div id="blocco_comm_XML">
+
+<div id="fpMateConfCommands" class="blocco_comm">	
+	
+	<form action="" name="fpMateConfCommandForm" id="fpMateConfCommandForm" method="post">
+		<input name="readVersion" type="button" value="Read Version" onClick="readVersionFunc()" style="width: 200px; margin-left:100px" ><p><br>
+		<input name="addDevice" type="button" value="Add Device" onClick="addDeviceFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="saveDevices" type="button" value="Save Devices" onClick="saveDevicesFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="readDevices" type="button" value="Read Devices" onClick="readDevicesFunc()" style="width: 200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- fpMateConfCommands -->
+
+<div id="fiscalReceiptCommands" class="blocco_comm">	
+	
+	<form action="" name="fiscalCommandsForm" id="fiscalCommandsForm" method="post">
+		<input name="begFiscRec" type="button" value="Begin Fiscal Receipt" onClick="beginFiscalRecFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="prtRecItem" type="button" value="Print Rec Item" onClick='prtRecItemFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecItemVoid" type="button" value="Print Rec Item Void" onClick='prtRecItemVoidFunc()' style="width: 200px" /><br>
+		<input name="prtRecItemAdj" type="button" value="Print Rec Item Adjustment" onClick='prtRecItemAdjustmentFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecItemAdjVoid" type="button" value="Print Rec Item Adjustment Void" onClick='prtRecItemAdjustmentVoidFunc()' style="width: 200px" /><br>
+		<input name="prtRecMess" type="button" value="Print Rec Message" onClick='prtRecMessageFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecRefund" type="button" value="Print Rec Refund" onClick='prtRecRefundFunc()' style="width: 200px" /><br>
+		<input name="prtRecSubtotal" type="button" value="Print Rec Subtotal" onClick='prtRecSubtotalFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecSubAdj" type="button" value="Print Rec Subtotal Adjustment" onClick='prtRecSubtotalAdjustmentFunc()' style="width: 200px" /><br>
+		<input name="prtRecTotal" type="button" value="Print Rec Total" onClick='prtRecTotalFunc()' style="width:200px" />&nbsp;
+		<input name="prtBarCode" type="button" value="Print Barcode" onClick='prtBarCodeFunc()' style="width:200px" /><br>
+		<input name="prtGraCoup" type="button" value="Print Graphic Coupon" onClick="prtGraCoupFunc()" style="width:200px" /><p>
+		<input name="endFiscRec" type="button" value="End Fiscal Receipt" onClick='endFiscalRecFunc()' style="width:200px; margin-left:100px"/>
+	</form>
+		
+</div> <!-- fiscalReceiptCommands -->
+
+<div id="creditNoteCommands" class="blocco_comm">	
+	
+	<form action="" name="creditNoteCommandsForm" id="creditNoteCommandsForm" method="post">
+		<input name="prtRecMess" type="button" value="Print Rec Message" onClick='prtRecMessageFunc()' style="width: 200px; margin-left:100px" /><p>
+		<input name="prtRecItemAdj" type="button" value="Print Rec Item Adjustment" onClick='prtRecItemAdjustmentFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecItemAdjVoid" type="button" value="Print Rec Item Adjustment Void" onClick='prtRecItemAdjustmentVoidFunc("creditNote")' style="width: 200px" /><br>
+		<input name="prtRecRefund" type="button" value="Print Rec Refund" onClick='prtRecRefundFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecSubtotal" type="button" value="Print Rec Subtotal" onClick='prtRecSubtotalFunc()' style="width: 200px" /><br>
+		<input name="prtRecSubAdj" type="button" value="Print Rec Subtotal Adjustment" onClick='prtRecSubtotalAdjustmentFunc()' style="width: 200px" />&nbsp;
+		<input name="prtRecTotal" type="button" value="Print Rec Total" onClick='prtRecTotalFunc()' style="width:200px" /><br>
+		<input name="prtBarCode" type="button" value="Print Barcode" onClick='prtBarCodeFunc()' style="width:200px" />&nbsp;
+		<input name="prtGraCoup" type="button" value="Print Graphic Coupon" onClick="prtGraCoupFunc()" style="width:200px" /><p>
+		<input name="endFiscRec" type="button" value="End Fiscal Receipt" onClick='endFiscalRecFunc()' style="width:200px; margin-left:100px"/>
+	</form>
+		
+</div> <!-- creditNoteCommands -->
+
+
+<div id="nonFiscalReceiptCommands" class="blocco_comm">	
+	
+	<form action="" name="nonFiscalCommandsForm" id="nonFiscalCommandsForm" method="post">
+		<input name="begNonFiscRec" type="button" value="Begin Non-fiscal" onClick="beginNonFiscalFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="prtNormal" type="button" value="Print Normal" onClick="prtNormalFunc()" style="width: 200px" />&nbsp;
+		<input name="prtBarCode" type="button" value="Print Barcode" onClick='prtBarCodeFunc()' style="width:200px" /><p>
+		<input name="prtGraCoup" type="button" value="Print Graphic Coupon" onClick="prtGraCoupFunc()" style="width:200px" />
+		<input name="setLogo" type="button" value="Set Logo" onClick="setLogoFunc()" style="width:200px" /><p>
+		<input name="prtRecMess" type="button" value="Print Rec Message" onClick='prtRecMessageFunc()' style="width: 200px" /><p>
+		<input name="endNonFiscRec" type="button" value="End Non-fiscal" onClick="endNonFiscalFunc()" style="width:200px; margin-left:100px"/><p>
+	</form>
+		
+</div> <!-- nonFiscalReceiptCommands -->
+
+<div id="fiscalReportCommands" class="blocco_comm">
+	
+	<form action="" name="fiscalReportCommandsForm" id="fiscalReportCommandsForm" method="post">
+		<input name="printXReport" type="button" value="Print X Report" onClick="prtXReportFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="printZReport" type="button" value="Print Z Report" onClick="prtZReportFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="printXZReport" type="button" value="Print X and Z Report" onClick="prtXZReportFunc()" style="width: 200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- fiscalReportCommands -->
+
+<div id="commandCommands" class="blocco_comm">	
+	
+	<form action="" name="commandCommandsForm" id="commandCommandsForm" method="post">
+		<input name="queryContentByDate" type="button" value="Query Content By Date" onClick="queryContentByDateFunc()" style="width: 200px; margin-left:8px" >
+		<input name="queryContentByNumbers" type="button" value="Query Content By Numbers" onClick="queryContentByNumbersFunc()" style="width: 200px" ><br>
+		<input name="printContentByDate" type="button" value="Print Content By Date" onClick="printContentByDateFunc()" style="width: 200px; margin-left:8px" >
+		<input name="printContentByNumbers" type="button" value="Print Content By Numbers" onClick="printContentByNumbersFunc()" style="width: 200px" ><p>
+		<input name="queryPrinterStatus" type="button" value="Query Printer Status" onClick="queryPrinterStatusFunc()" style="width: 200px; margin-left:8px" >
+		<input name="resetPrinter" type="button" value="Reset Printer" onClick="resetPrinterFunc()" style="width: 200px" ><p>
+		<input name="beginTraining" type="button" value="Begin Training" onClick="beginTrainingFunc()" style="width: 200px; margin-left:8px" >
+		<input name="endTraining" type="button" value="End Training" onClick="endTrainingFunc()" style="width: 200px" ><p>
+		<input name="printRecCash" type="button" value="Print Rec Cash" onClick="prtRecCashFunc()" style="width: 200px; margin-left:8px" >
+		<input name="setLogo" type="button" value="Set Logo" onClick="setLogoFunc()" style="width: 200px" ><p>
+		<input name="printDuplicateReceipt" type="button" value="Print Duplicate Receipt" onClick="prtDuplicateRecFunc()" style="width:200px; margin-left:8px" >				
+		<input name="authorizeSales" type="button" value="Authorize Sales" onClick="authorizeSalesFunc()" style="width:200px" ><p>
+		<input name="setDate" type="button" value="Set Date" onClick="setDateFunc()" style="width:200px; margin-left:8px"  >
+		<input name="getDate" type="button" value="Get Date" onClick="getDateFunc()" style="width:200px" >
+		
+	</form>
+		
+</div> <!-- commandCommands -->
+
+<div id="lastFiscalReceiptFiscalDocumentCommands" class="blocco_comm">	
+	
+	<form action="" name="commandsForm2" id="commandsForm2" method="post">
+		<input name="prtRecMess" type="button" value="Print Rec Message" onClick='prtRecMessageFunc()' style="width: 200px; margin-left:100px" ><p>
+		<input name="begFiscDoc" type="button" value="Begin Fiscal Document" onClick='beginFiscalDocFunc()' style="width: 200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- lastFiscalReceiptFiscalDocumentCommands -->
+
+
+<div id="directFiscalDocumentCommands" class="blocco_comm">	
+	
+	<form action="" name="commandsForm4" id="commandsForm4" method="post">
+		<input name="prtRecMess" type="button" value="Print Rec Message" onClick='prtRecMessageFunc()' style="width: 200px; margin-left:100px" ><p>
+		<input name="begFiscDoc" type="button" value="Begin Fiscal Document" onClick='beginFiscalDocFunc()' style="width: 200px; margin-left:100px" ><p>
+		<input name="prtRecItem" type="button" value="Print Rec Item" onClick="prtRecItemFunc()" style="width: 200px" >&nbsp;
+		<input name="prtRecItemVoid" type="button" value="Print Rec Item Void" onClick="prtRecItemVoidFunc()" style="width: 200px" ><br>
+		<input name="prtRecItemAdj" type="button" value="Print Rec Item Adjustment" onClick="prtRecItemAdjustmentFunc()" style="width: 200px" >&nbsp;
+		<input name="prtRecItemAdjVoid" type="button" value="Print Rec Item Adjustment Void" onClick="prtRecItemAdjustmentVoidFunc()" style="width: 200px" ><br>
+		<input name="prtRecRefund" type="button" value="Print Rec Refund" onClick="prtRecRefundFunc()" style="width: 200px" >&nbsp;
+		<input name="prtRecSubtotal" type="button" value="Print Rec Subtotal" onClick="prtRecSubtotalFunc()" style="width: 200px" ><br>
+		<input name="prtRecSubAdj" type="button" value="Print Rec Subtotal Adjustment" onClick="prtRecSubtotalAdjustmentFunc()" style="width: 200px" >&nbsp;
+		<input name="prtRecTotal" type="button" value="Print Rec Total" onClick='prtRecTotalFunc()' style="width:200px" ><p>
+		<input name="endFiscDoc" type="button" value="End Fiscal Document" onClick="endFiscalDocFunc()" style="width:200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- directFiscalDocumentCommands-->
+
+
+<div id="freeFiscalDocumentCommands" class="blocco_comm">	
+	
+	<form action="" name="commandsForm3" id="commandsForm3" method="post">
+		<input name="begFiscDoc" type="button" value="Begin Fiscal Document" onClick='beginFiscalDocFunc()' style="width: 200px; margin-left:100px" ><p>
+		<input name="printFiscDocLine" type="button" value="Print Fiscal Doc Line" onClick="printFiscDocLineFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="endFiscDoc" type="button" value="End Fiscal Document" onClick="endFiscalDocFunc()" style="width:200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- freeFiscalDocumentCommands -->
+
+<div id="biglietteriaTicketCommands" class="blocco_comm">	
+	
+	<form action="" name="commandsForm5" id="commandsForm5" method="post">
+		<input name="enterTicket" type="button" value="Enter Ticket" onClick='entTicketFunc()' style="width: 200px; margin-left:100px" ><p>
+		<input name="beginTicket" type="button" value="Begin Ticket" onClick="begTicketFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="printTicket" type="button" value="Print Ticket" onClick="prtTicketFunc()" style="width:200px" >&nbsp;
+		<input name="printBarCode" type="button" value="Print Barcode" onClick='prtBarCodeFunc()' style="width:200px" ><p>
+		<input name="endTicket" type="button" value="End Ticket" onClick="endTicketFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="exitTicket" type="button" value="Exit Ticket" onClick="exitTicketFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="exitTicket" type="button" value="Void Ticket" onClick="voidTicketFunc()" style="width: 200px; margin-left:100px" ><p>
+	</form>
+
+</div> <!-- biglietteriaTicketCommands -->
+
+
+<div id="eposPrintCommands" class="blocco_comm">	
+	
+	<form action="" name="eposPrintCommandsForm" id="eposPrintCommandsForm" method="post">
+		<input name="text" type="button" value="Text" onClick="textFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="feed" type="button" value="Feed" onClick="feedFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="barcode" type="button" value="Barcode" onClick="barcodeFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="cut" type="button" value="Cut" onClick="cutFunc()" style="width: 200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- eposPrintCommands -->
+
+<div id="commonCommands" class="blocco_comm">	
+	
+	<form action="" name="commonCommands" id="commonCommandsForm" method="post">
+		<input name="openDrawer" type="button" value="Open Drawer" onClick="openDrawerFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="directIO" type="button" value="Direct IO" onClick="directIOFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="clearText" type="button" value="Clear Text" onClick="clearTextFunc()" style="width: 200px; margin-left:100px" ><p>
+		<input name="displayText" type="button" value="Display Text" onClick="displayTextFunc()" style="width: 200px; margin-left:100px" ><p>
+	</form>
+		
+</div> <!-- commonCommands -->
+
+<div id="specialFunctions" class="blocco_comm">	
+	
+	<form method="post" enctype="multipart/form-data" action="/cgi-bin/fpmate.cgi?encodeFile" name="specialFunctionsForm1" id="specialFunctionsForm1" target="hiddenIFrame1" >
+		<input type="file" name="file.bin" size="42"><br>Select logo file for conversion</><p>
+		<!--input name="fileURL" id="fileURL" type="text" value="http://192.168.1.124/fp_demo_web/Cisalfa_Split_Complete.bin" style="width: 400px; margin-left:10px" ><br>Insert logo URL<p> -->
+		<input name="Upload Logo1" type="button" value="Create Upload Logo Sequence 1 XMLHTTP" onClick="uploadLogoSequenceFunc('specialFunctionsForm1, base64Data')" style="width:350px; margin-left:10px" >
+		<input name="Upload Logo2" type="submit" value="Create Upload Logo Sequence 2 Submit" style="width:350px; margin-left:10px" ><p>
+	</form>
+	
+	<form method="post" enctype="multipart/form-data" action="/cgi-bin/fpmate.cgi?saveFile" name="specialFunctionsForm2" id="specialFunctionsForm2" target="hiddenIFrame2" >	
+		<input type="file" name="file.bin" size="42"><br>Select logo file for upload</><p>
+		<input name="Upload Logo3" type="button" value="Create Upload Logo Sequence 3 XMLHTTP" onClick="uploadLogoSequenceFunc('specialFunctionsForm2, internalFile')" style="width:350px; margin-left:10px" >
+		<input name="Upload Logo4" type="submit" value="Create Upload Logo Sequence 4 Submit" style="width:350px; margin-left:10px" >
+	</form>
+
+		
+</div> <!-- specialFunctions -->
+
+<div id="blocco_XML">
+	<table id="XMLTable" style="width: 100%">
+		
+		<tr>
+			<td id="command1"></td>
+		</tr>
+		<tr>
+			<td id="command2" style="height: 24px"></td>
+		</tr>
+		<tr>
+			<td id="command3"></td>
+		</tr>
+		<tr>
+			<td id="command4"></td>
+		</tr>
+		<tr>
+			<td id="command5"></td>
+		</tr>
+		<tr>
+			<td id="command6"></td>
+		</tr>
+		<tr>
+			<td id="command7"></td>
+		</tr>
+		<tr>
+			<td id="command8"></td>
+		</tr>
+		<tr>
+			<td id="command9"></td>
+		</tr>
+		<tr>
+			<td id="command10"></td>
+		</tr>
+		<tr>
+			<td id="command11"></td>
+		</tr>
+		<tr>
+			<td id="command12"></td>
+		</tr>
+		<tr>
+			<td id="command13"></td>
+		</tr>
+		<tr>
+			<td id="command14"></td>
+		</tr>
+		<tr>
+			<td id="command15"></td>
+		</tr>
+		<tr>
+			<td id="command16"></td>
+		</tr>
+		<tr>
+			<td id="command17"></td>
+		</tr>
+		<tr>
+			<td id="command18"></td>
+		</tr>
+		<tr>
+			<td id="command19"></td>
+		</tr>
+		<tr>
+			<td id="command20"></td>
+		</tr>
+	</table>
+
+</div> <!-- blocco_XML -->
+
+
+<div id="fiscalReceiptTabs">
+<h2>Please choose the type of fiscal receipt</h2>
+<ol>
+	<li id="fiscalReceiptTab" class ="fiscalReceiptTabsListItem" onClick="fiscalReceiptCommandsFunc()">Fiscal<br>Receipt</li>
+	<li id="creditNoteTab" class ="fiscalReceiptTabsListItem" onClick="creditNoteCommandsFunc()">Credit<br>Note</li><br>
+	<li id="refundDocTab" class ="fiscalReceiptTabsListItem" onClick="refundDocCommandsFunc()">Refund<br>Doc</li>
+	<li id="CancelDocTab" class ="fiscalReceiptTabsListItem" onClick="cancelDocCommandsFunc()">Cancel<br>Doc</li>
+</ol>
+</div> <!-- fiscalReceiptTabs -->
+
+<div id="fiscalDocumentTabs">
+<h2>Please choose the type of invoice</h2>
+<ol>
+	<li id="lastFiscalReceiptInvoiceTab" class="fiscalDocumentTabsListItem" onclick='fiscalDocumentCommandsFunc("lastReceiptInvoice")'>Invoice<br>(Last Fiscal Receipt)</li>
+	<li id="directInvoiceTab" class="fiscalDocumentTabsListItem" onclick='fiscalDocumentCommandsFunc("directInvoice")'>Direct<br>Invoice</li>
+<!--<li id="freeInvoiceTab" class="fiscalDocumentTabsListItem" onclick='fiscalDocumentCommandsFunc("freeInvoice")'>Free<br>Invoice</li>
+	<li id="receiptBasedFreeInvoiceTab" class="fiscalDocumentTabsListItem" onclick='fiscalDocumentCommandsFunc("receiptBasedFreeInvoice")'>Receipt Based<br>Free Invoice</li>
+	-->
+</ol>
+</div> <!-- fiscalDocumentTabs -->
+
+</div> <!-- blocco_comm_XML -->
+
+<div id="blocco_attr_fpMateConfiguration">
+
+	<form method="post" name="fpMateConfigurationAttributesForm" id="fpMateConfigurationAttributesForm">
+	
+	<table id="fpMateConfigurationAttributesTable" style="width:100%">
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  1 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Device ID&nbsp;
+		<input name="deviceId" type="text" style="width:105px" value="">
+	</td>
+
+	</tr>
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  2 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Device IP Address&nbsp;
+		<input name="deviceIpAddress1" id="deviceIpAddress1" type="text" style="width:55px" value="" >
+		.
+		<input name="deviceIpAddress2" id="deviceIpAddress2" type="text" style="width:55px" value="" >
+		.
+		<input name="deviceIpAddress3" id="deviceIpAddress3" type="text" style="width:55px" value="" >
+		.
+		<input name="deviceIpAddress4" id="deviceIpAddress4" type="text" style="width:55px" value="" >
+
+		<!--input name="deviceIp" type="text" style="width:105px" value=""-->
+	</td>
+
+	</tr>
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  3 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Device Type&nbsp;
+		<select name="deviceType">
+			<option value="fpPrinter">fpPrinter</option>
+			<option value="tmPrinter">tmPrinter</option>
+		</select>
+	</td>
+
+	</tr>
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  4 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Device Model&nbsp;
+		<input name="deviceModel" type="text" style="width:105px" value="">
+	</td>
+
+	</tr>
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  5 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Device Retry&nbsp;
+		<input name="deviceRetry" type="text" style="width:65px" value="">
+	</td>
+
+	</tr>
+
+	</table>
+	</form>
+</div> <!-- blocco_attr_fpMateConfiguration -->
+
+
+<div id="blocco_attr">
+
+	<form method="post" name="attributesForm" id="attributesForm">
+	
+	<!--
+	<table style="width:100%">
+
+	<tr>
+	</tr>
+	
+	</table>
+		
+		&nbsp;Override&nbsp;
+		<input id="operatorOverrideCheckBox" name="operatorOverrideCheckBox" type="checkbox" onclick="OperatorInputFieldVisibility()">
+		
+		<input id="operatorOverride" name="operatorOverride" type="text" style="width:36px; visibility:hidden" value="" >
+		-->
+		<!--
+		<img id="barCodeImage" src="images/barcode.jpg" alt="Barcode Attributes" onclick="showBarCodeAttributes()">
+		<img id="goBackImage" src="images/BackButton.jpg" alt="Barcode Attributes" onclick="showAttributes()">
+		
+		<input id="showBarCodeAttributesButton" name="showBarCodeAttributesButton" type="button" value="Barcode Attributes" style="width:150px" onClick="showBarCodeAttributes()">
+		<input id="showAttributesButton" name="showAttributesButton" type="button" value="Attributes" style="width:150px" onClick="showAttributes()">
+		-->
+
+	<table id="attributesTable" style="width:100%">
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  1 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Operator&nbsp;
+		<select name="operator" id="operator" onchange="operatorChangeManagement()">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="51">51</option>
+			<option value="52">52</option>
+			<option value="53">53</option>
+			<option value="54">54</option>
+			<option value="55">55</option>
+			<option value="56">56</option>
+			<option value="57">57</option>
+			<option value="58">58</option>
+			<option value="59">59</option>
+			<option value="60">60</option>
+			<option value="61">61</option>
+			<option value="62">62</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		Adjustment Type&nbsp;
+		<select name="adjustmentType">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		Document Number&nbsp;
+		<input name="documentNumber" type="text" style="width:55px" value="">
+	</td>
+
+	<td class="attributesTableCells">
+		Position&nbsp;
+		<input name="position" type="text" style="width: 35px" value="">
+		&nbsp;&nbsp;&nbsp;&nbsp;QR Code Alignment&nbsp;
+		<select name="qRCodeAlignment">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+		</select>
+	</td>
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  2 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Description&nbsp;
+		<input name="description" type="text" style="width:175px" value="">
+	</td>
+	
+	<td class="attributesTableCells">
+		Amount&nbsp;
+		<input name="amount" type="text" style="width: 55px" value=""> 
+	</td>
+
+	<td class="attributesTableCells">
+	<!--	Document Amount&nbsp;
+		<input name="documentAmount" type="text" style="width:85px" value="">
+	-->
+	</td>
+	
+	<td class="attributesTableCells">
+		Width&nbsp;
+		<input name="width" type="text" style="width: 50px" value="">
+		&nbsp;&nbsp;&nbsp;&nbsp;Height&nbsp;
+		<input name="height" type="text" style="width: 50px" value="">
+	</td>
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  3 - - - - - - - - - - - - - - - - - - - - - - -->
+		
+	<td class="attributesTableCells">
+		Quantity&nbsp;
+		<input name="quantity" type="text" style="width:75px" value="">
+		&nbsp;Print if exactly one&nbsp;
+		<input name="quantityIfOneCheckbox" id="quantityIfOneCheckbox" type="checkbox" onclick="quantityIfOneCheckboxManagement()" ><br>
+	</td>
+
+	<td class="attributesTableCells">
+		Void Last Item&nbsp;
+		<select name="voidLastItem">
+			<option value="0">0</option>
+			<option value="1">1</option>
+		</select><br>
+	</td>	
+
+	<td class="attributesTableCells">
+	<!--
+		Document Line&nbsp;
+		<input name="documentLine" type="text" style="width:165px" value="">
+	-->
+	</td>
+	
+	<td class="attributesTableCells">
+		QR Code Size&nbsp;
+		<select name="qRCodeSize">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+		</select>
+	</td>	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  4 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Unit Price&nbsp;
+		<input name="unitPrice" type="text" style="width: 85px" value=""> <br>
+	</td>
+	
+	<td class="attributesTableCells">
+		Message Type&nbsp;
+		<select name="messageType">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4" selected="selected">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>	
+			<option value="8">8</option>
+		</select>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Font&nbsp;
+		<select name="font">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+		</select>	
+	</td>
+
+	<td class="attributesTableCells">
+		Operation Type&nbsp;
+		<select name="operationType">
+			<option value="0">0</option>
+			<option value="1">1</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		HRI Position&nbsp;
+		<select name="hRIPosition">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  5 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Department&nbsp;
+		<input name="department" type="text" style="width:55px" value="1"> <br>
+	</td>
+
+	<td class="attributesTableCells">
+		Clear EFTPOS Buffer&nbsp;
+		<select name="clearEFTPOSBuffer">
+			<option value="0">0</option>
+			<option value="1">1</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		Location (Logo)&nbsp;
+		<select name="location">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		QR Code Data Type
+		<select name="qRCodeDataType">
+			<option value="alphaNumeric">alphaNumeric</option>
+			<option value="binary">binary</option>
+		</select>
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  6 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Justification&nbsp;
+		<select name="justification">
+		<option value="1">1</option>
+		<option value="2">2</option>
+		</select><br>
+	</td>
+
+	<td class="attributesTableCells">
+		Message&nbsp;
+		<input name="message" type="text" style="width: 160px" value=""> <br>
+	</td>
+	
+	<td class="attributesTableCells">
+		Graphic Format&nbsp;
+		<select name="graphicFormat">
+			<option value="B">B</option>
+			<option value="R">R</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		HRI Font&nbsp;
+		<select name="hRIFont">
+			<option value="A">A</option>
+			<option value="B">B</option>
+			<option value="C">C</option>
+		</select>
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  7 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Payment&nbsp;
+		<input name="payment" type="text" style="width: 85px" value=""> <br>
+	</td>
+
+	<td class="attributesTableCells">
+		Option (Rec Subtotal and Logo)&nbsp;
+		<select name="option">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		QR Code Error Correction&nbsp;
+		<select name="qRCodeErrorCorrection">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+	</td>
+
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  8 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Payment Type&nbsp;
+		<select name="paymentType">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		Command&nbsp;
+		<input name="command" type="text" style="width: 55px" value="">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		Code Type&nbsp;
+		<select name="codeType">
+			<option value="UPC-A">UPC-A</option>
+			<option value="UPC-B">UPC-B</option>
+			<option value="EAN13">EAN13</option>
+			<option value="EAN8">EAN8</option>
+			<option value="CODE39">CODE39</option>
+			<option value="ITF">ITF</option>
+			<option value="CODABAR">CODABAR</option>
+			<option value="CODE93">CODE93</option>
+			<option value="CODE128">CODE128</option>
+			<option value="QRCODE1">QRCODE1</option>
+			<option value="QRCODE2">QRCODE2</option>
+		</select>
+	</td>	
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  9 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Index&nbsp;
+		<input name="index" type="text" style="width: 26px" value="1"> <br>
+	</td>
+	
+	<td class="attributesTableCells">
+		Data&nbsp;
+		<input name="data" type="text" style="width: 190px" value="">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+		Code&nbsp;
+		<input name="code" type="text" style="width: 200px" value=""> <br>
+	</td>
+		
+	</tr>
+	
+	</table>
+
+	<!--
+	<table id="barCodeAttributesTable" style="width:100%">
+
+	<tr>
+	
+	<td class="attributesTableCells">
+		Position&nbsp;
+		<input name="position" type="text" style="width: 50px" value="">
+	</td>
+	
+	<td class="attributesTableCells">
+		Width&nbsp;
+		<input name="width" type="text" style="width: 50px" value="">
+	</td>
+	
+	</tr>
+	<tr>
+	
+	<td class="attributesTableCells">
+		Height&nbsp;
+		<input name="height" type="text" style="width: 50px" value="">
+	</td>
+	
+	<td class="attributesTableCells">
+		HRI Position&nbsp;
+		<select name="hRIPosition">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+	</td>
+	</tr>
+	<tr>
+	
+	<td class="attributesTableCells">
+		HRI Font&nbsp;
+		<select name="hRIFont">
+			<option value="A">A</option>
+			<option value="A">B</option>
+			<option value="A">C</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		Code Type&nbsp;
+		<select name="codeType">
+			<option value="UPC-A">UPC-A</option>
+			<option value="UPC-B">UPC-B</option>
+			<option value="EAN13">EAN13</option>
+			<option value="EAN8">EAN8</option>
+			<option value="CODE39">CODE39</option>
+			<option value="ITF">ITF</option>
+			<option value="CODABAR">CODABAR</option>
+			<option value="CODE93">CODE93</option>
+			<option value="CODE128">CODE128</option>
+		</select>
+	</td>
+
+	</tr>
+	<tr>
+	
+	<td class="attributesTableCells">
+		Code&nbsp;
+		<input name="code" type="text" style="width: 155px" value=""> <br>
+	</td>
+	
+	</tr>
+	</table>
+-->
+
+	</form>
+</div> <!-- blocco_attr -->
+
+<div id="blocco_attr_printerCommand">
+
+	<form method="post" name="printerCommandAttributesForm" id="printerCommandAttributesForm">
+	
+	<table id="printerCommandAttributesTable" style="width:100%">
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  1 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Operator&nbsp;
+		<select name="operator" id="operator">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		Data Type&nbsp;
+		<select name="dataType">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  2 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Direction&nbsp;
+		<select name="direction">
+			<option value="in">in</option>
+			<option value="out">out</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  3 - - - - - - - - - - - - - - - - - - - - - - -->
+		
+	<td class="attributesTableCells">
+		Form&nbsp;
+		<select name="form">
+			<option value="cash">cash</option>
+			<option value="cheque">cheque</option>
+			<option value="check">check</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		From Day&nbsp;
+		<select name="fromDay">
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">23</option>
+			<option value="24">24</option>
+			<option value="25">25</option>
+			<option value="26">26</option>
+			<option value="27">27</option>
+			<option value="28">28</option>
+			<option value="29">29</option>
+			<option value="30">30</option>
+			<option value="31">31</option>
+		</select>
+	</td>	
+
+	<td class="attributesTableCells">
+		Day&nbsp;
+		<select name="day">
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">23</option>
+			<option value="24">24</option>
+			<option value="25">25</option>
+			<option value="26">26</option>
+			<option value="27">27</option>
+			<option value="28">28</option>
+			<option value="29">29</option>
+			<option value="30">30</option>
+			<option value="31">31</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		From Number&nbsp;
+		<input name="fromNumber" type="text" style="width: 55px" maxlength="4" value="">
+	</td>
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  4 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Amount&nbsp;
+		<input name="amount" type="text" style="width: 85px" value="">
+	</td>
+	
+	<td class="attributesTableCells">
+		From Month&nbsp;
+		<select name="fromMonth">
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		Month&nbsp;
+		<select name="month">
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+		</select>
+
+	</td>
+
+	<td class="attributesTableCells">
+		To Number&nbsp;
+		<input name="toNumber" type="text" style="width: 55px" maxlength="4" value="">
+	</td>
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  5 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Location (Logo)&nbsp;
+		<select name="location">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+		From Year&nbsp;
+		<select name="fromYear">
+			<option value="2014">2014</option>
+			<option value="2015">2015</option>
+			<option value="2016">2016</option>
+			<option value="2017">2017</option>
+			<option value="2018">2018</option>
+			<option value="2019">2019</option>
+			<option value="2020">2020</option>
+			<option value="2011">2011</option>
+			<option value="2012">2012</option>
+			<option value="2013">2013</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		Year&nbsp;
+		<select name="year">
+			<option value="2014">2014</option>
+			<option value="2015">2015</option>
+			<option value="2016">2016</option>
+			<option value="2017">2017</option>
+			<option value="2018">2018</option>
+			<option value="2019">2019</option>
+			<option value="2020">2020</option>
+			<option value="2011">2011</option>
+			<option value="2012">2012</option>
+			<option value="2013">2013</option>
+		</select>
+
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  6 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Index&nbsp;
+		<input name="index" type="text" style="width: 26px" value="1"> <br>
+	</td>
+
+	<td class="attributesTableCells">
+		To Day&nbsp;
+		<select name="toDay">
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">23</option>
+			<option value="24">24</option>
+			<option value="25">25</option>
+			<option value="26">26</option>
+			<option value="27">27</option>
+			<option value="28">28</option>
+			<option value="29">29</option>
+			<option value="30">30</option>
+			<option value="31">31</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		Hour&nbsp;
+		<select name="hour">
+			<option value="00">00</option>
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">23</option>			
+		</select>
+	</td>
+
+
+	<td class="attributesTableCells">
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  7 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">	
+		Status Type&nbsp;
+		<select name="statusType">
+			<option value="0">0 (Misuratore Fiscale)</option>
+			<option value="1">1 (Registratore Telematico)</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		To Month&nbsp;
+		<select name="toMonth">
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+		</select>
+
+	</td>
+	
+	<td class="attributesTableCells">
+		Minute&nbsp;
+		<select name="minute">
+			<option value="00">00</option>
+			<option value="01">01</option>
+			<option value="02">02</option>
+			<option value="03">03</option>
+			<option value="04">04</option>
+			<option value="05">05</option>
+			<option value="06">06</option>
+			<option value="07">07</option>
+			<option value="08">08</option>
+			<option value="09">09</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">23</option>
+			<option value="24">24</option>
+			<option value="25">25</option>
+			<option value="26">26</option>
+			<option value="27">27</option>
+			<option value="28">28</option>
+			<option value="29">29</option>
+			<option value="30">30</option>
+			<option value="31">31</option>
+			<option value="32">32</option>
+			<option value="33">33</option>
+			<option value="34">34</option>
+			<option value="35">35</option>
+			<option value="36">36</option>
+			<option value="37">37</option>
+			<option value="38">38</option>
+			<option value="39">39</option>
+			<option value="40">40</option>
+			<option value="41">41</option>
+			<option value="42">42</option>
+			<option value="43">43</option>
+			<option value="44">44</option>
+			<option value="45">45</option>
+			<option value="46">46</option>
+			<option value="47">47</option>
+			<option value="48">48</option>
+			<option value="49">49</option>
+			<option value="50">50</option>
+			<option value="51">51</option>
+			<option value="52">52</option>
+			<option value="53">53</option>
+			<option value="54">54</option>
+			<option value="55">55</option>
+			<option value="56">56</option>
+			<option value="57">57</option>
+			<option value="58">58</option>
+			<option value="59">59</option>
+		</select>
+	</td>
+
+	
+	<td class="attributesTableCells">
+	</td>
+
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  8 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		To Year&nbsp;
+		<select name="toYear">
+			<option value="2014">2014</option>
+			<option value="2015">2015</option>
+			<option value="2016">2016</option>
+			<option value="2017">2017</option>
+			<option value="2018">2018</option>
+			<option value="2019">2019</option>
+			<option value="2020">2020</option>
+			<option value="2011">2011</option>
+			<option value="2012">2012</option>
+			<option value="2013">2013</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>	
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  9 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+		
+	</tr>
+	
+	</table>
+
+</form>
+</div> <!-- blocco_attr_printerCommand -->
+
+<div id="blocco_attr_biglietteriaTicket">
+
+	<form method="post" name="biglietteriaTicketAttributesForm" id="biglietteriaTicketAttributesForm">
+	
+	<table id="biglietteriaTicketAttributesTable" style="width:100%">
+
+	<tr> <!-- - - - - - - - - - - - - - R o w  1 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Random Number&nbsp;
+		<input name="randomNum" type="text" style="width: 26px" value=""> <br>
+	</td>
+		
+	<td class="attributesTableCells">
+		Position&nbsp;
+		<input name="position" type="text" style="width: 35px" value="">
+		&nbsp;QR Code Alignment&nbsp;
+		<select name="qRCodeAlignment">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  2 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Control Code&nbsp;
+		<input name="controlCode" type="text" style="width: 52px" value="">
+	</td>
+	
+	<td class="attributesTableCells">
+		Width&nbsp;
+		<input name="width" type="text" style="width: 50px" value="">
+		&nbsp;&nbsp;&nbsp;&nbsp;Height&nbsp;
+		<input name="height" type="text" style="width: 50px" value="">
+	</td>
+
+	
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+	
+		
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  3 - - - - - - - - - - - - - - - - - - - - - - -->
+		
+	<td class="attributesTableCells">
+		Text Type&nbsp;
+		<select name="textType">
+			<option value="R">R</option>
+			<option value="S">S</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		QR Code Size&nbsp;
+		<select name="qRCodeSize">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+		</select>
+	</td>			
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  4 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+		Font&nbsp;
+		<select name="font">
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+		HRI Position&nbsp;
+		<select name="hRIPosition">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  5 - - - - - - - - - - - - - - - - - - - - - - -->
+
+	<td class="attributesTableCells">
+		Text&nbsp;
+		<input name="text" type="text" style="width:185px" value="">
+	</td>	
+
+	<td class="attributesTableCells">
+		QR Code Data Type
+		<select name="qRCodeDataType">
+			<option value="alphaNumeric">alphaNumeric</option>
+			<option value="binary">binary</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  6 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		HRI Font&nbsp;
+		<select name="hRIFont">
+			<option value="A">A</option>
+			<option value="A">B</option>
+			<option value="A">C</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  7 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		QR Code Error Correction&nbsp;
+		<select name="qRCodeErrorCorrection">
+			<option value="0">0</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+		</select>
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  8 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		Code Type&nbsp;
+		<select name="codeType">
+			<option value="UPC-A">UPC-A</option>
+			<option value="UPC-B">UPC-B</option>
+			<option value="EAN13">EAN13</option>
+			<option value="EAN8">EAN8</option>
+			<option value="CODE39">CODE39</option>
+			<option value="ITF">ITF</option>
+			<option value="CODABAR">CODABAR</option>
+			<option value="CODE93">CODE93</option>
+			<option value="CODE128">CODE128</option>
+			<option value="QRCODE1">QRCODE1</option>
+			<option value="QRCODE2">QRCODE2</option>
+		</select>
+	</td>
+	
+	<td class="attributesTableCells">
+	</td>	
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	</tr>
+	
+	<tr> <!-- - - - - - - - - - - - - - R o w  9 - - - - - - - - - - - - - - - - - - - - - - -->
+	
+	<td class="attributesTableCells">
+	</td>
+	
+	<td class="attributesTableCells">
+		Code&nbsp;
+		<input name="code" type="text" style="width: 185px" value=""> <br>
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+
+	<td class="attributesTableCells">
+	</td>
+		
+	</tr>
+	
+	</table>
+
+</form>
+</div> <!-- blocco_attr_biglietteriaTicket -->
+
+<div id="pasteXMLButtonandWindow">
+	<input name="clearPasteXMLWindowButton" id="clearPasteXMLWindowButton" type="button" value="Clear" onclick='JavaScript:document.getElementById("pasteXMLWindow").value = ""' >
+	<textarea id="pasteXMLWindow" name="pasteXMLWindow" cols="60" rows="31"></textarea>
+</div>
+
+<div id="insertBase64ButtonandWindow">
+	<input name="clearBase64WindowButton" id="clearBase64WindowButton" type="button" value="Clear" onclick='JavaScript:document.getElementById("base64Window").value = ""' >
+	<input name="insertBase64Button" id="insertBase64Button" type="button" value="Insert" onclick="insertBase64Func()" >
+	<textarea id="base64Window" name="base64Window" cols="60" rows="31"></textarea>
+</div>
+
+	
+</div> <!-- blocco_main -->
+
+<div id="blocco_send">
+<form method="post" name="printerSelectionForm" id="printerSelectionForm">
+
+	Local Printer&nbsp;
+	<input name="localPrinterCheckBox" id="localPrinterCheckBox" type="checkbox" checked="checked" onclick="devIdLineVisibility()" >
+	
+	<div id="devIdLine">
+	Device Id (devid)&nbsp;
+	<input name="devIdValue" id="devIdValue" type="text" style="width:55px" value="" style:visibiliy="hidden" >
+	</div>
+	
+	fpmate.cgi Timeout&nbsp;
+	<input name="fpmateCgiTimeout" id="fpmateCgiTimeout" type="text" style="width:55px" value="10000" ><br>
+	
+	Library Timeout&nbsp;
+	<input name="libraryTimeout" id="libraryTimeout" type="text" style="width:55px" value="10000" ><br>
+		
+	Multi Send Interval&nbsp;
+		<select name="multiSendInterval">
+		<option value="10">10</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+			<option value="11">11</option>
+			<option value="12">12</option>
+			<option value="13">13</option>
+			<option value="14">14</option>
+			<option value="15">15</option>
+			<option value="16">16</option>
+			<option value="17">17</option>
+			<option value="18">18</option>
+			<option value="19">19</option>
+			<option value="20">20</option>
+			<option value="21">21</option>
+			<option value="22">22</option>
+			<option value="23">23</option>
+			<option value="24">24</option>
+			<option value="25">25</option>
+			<option value="26">26</option>
+			<option value="27">27</option>
+			<option value="28">28</option>
+			<option value="29">29</option>
+			<option value="30">30</option>
+			<option value="31">31</option>
+			<option value="32">32</option>
+			<option value="33">33</option>
+			<option value="34">34</option>
+			<option value="35">35</option>
+			<option value="36">36</option>
+			<option value="37">37</option>
+			<option value="38">38</option>
+			<option value="39">39</option>
+			<option value="40">40</option>
+			<option value="41">41</option>
+			<option value="42">42</option>
+			<option value="43">43</option>
+			<option value="44">44</option>
+			<option value="45">45</option>
+			<option value="46">46</option>
+			<option value="47">47</option>
+			<option value="48">48</option>
+			<option value="49">49</option>
+			<option value="50">50</option>
+			<option value="51">51</option>
+			<option value="52">52</option>
+			<option value="53">53</option>
+			<option value="54">54</option>
+			<option value="55">55</option>
+			<option value="56">56</option>
+			<option value="57">57</option>
+			<option value="58">58</option>
+			<option value="59">59</option>
+			<option value="60">60</option>
+		</select>&nbsp;seconds
+		&nbsp;&nbsp;&nbsp;Multi Send cycles completed&nbsp;
+		<input name="multiSendCyclesCompleted" id="multiSendCyclesCompleted" type="text" style="width:32px" value="0" >
+		&nbsp;&nbsp;&nbsp;Multi Send Errors&nbsp;
+		<input name="multiSendErrors" id="multiSendErrors" type="text" style="width:32px" value="0" >
+
+</form>
+
+
+<form method="post" name="crossDomainForm" id="crossDomainForm">
+Cross Domain&nbsp;
+<input name="crossDomainCheckBox" id="crossDomainCheckBox" type="checkbox" onclick="crossDomain()" >
+<br>
+<div id="ipAddresses">
+IP Address&nbsp;
+<input name="ipAddress1" id="ipAddress1" type="text" style="width:55px" value="" >
+.
+<input name="ipAddress2" id="ipAddress2" type="text" style="width:55px" value="" >
+.
+<input name="ipAddress3" id="ipAddress3" type="text" style="width:55px" value="" >
+.
+<input name="ipAddress4" id="ipAddress4" type="text" style="width:55px" value="" >
+<br>
+</div>
+<div id="displayURL">
+</div>
+</form>
+
+<input name="toggleXMLButton" id="toggleXMLButton" type="button" value="Paste XML" onclick="toggleXMLMode()" >
+<input name="singleSendButton" id="singleSendButton" type="button" value="Single Send" onclick="singleSendToPrinter()" >
+<input name="multiSendButton" id="multiSendButton" type="button" value="Multi Send" onclick="multiSendToPrinter()" >
+<input name="clearButton" id="clearButton" type="button" value="Start Over" onclick="startOver();">
+	
+
+</div>
+<div id="blocco_receive">
+<div id="blocco_receive_result">
+</div>
+<div id="blocco_receive_add_info">
+</div>
+</div>
+</div> <!-- outer -->
+
+</BODY>
+</HTML>

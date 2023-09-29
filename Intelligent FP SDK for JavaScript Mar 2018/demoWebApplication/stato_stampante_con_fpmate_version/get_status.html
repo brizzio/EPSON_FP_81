@@ -1,0 +1,267 @@
+<!--!DOCTYPE html PUBLIC "-//IETF//DTD HTML 2.0//EN">-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<HTML lang="it">
+
+   <HEAD>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <meta name="viewport" content="user-scalable=no" >
+      <TITLE>
+        Stato Stampante Fiscale
+      </TITLE>
+        <meta http-equiv="Content-Language" content="it">
+        
+      <link rel="stylesheet" type="text/css" href="styles.css">
+<script type="text/javascript" src="fiscalprint.js"></script>
+<script type="text/javascript">
+var stato_stampante_prefisso = "STATO STAMPANTE: ";
+var stato_stampante = "OK";
+var hostname = '192.168.001.110'
+
+
+function doSendData()
+{
+	for (var i = 1; i <= 12; i++)
+	{
+		document.getElementById("valore" + i).innerHTML = "&nbsp;"; // To make borders rendered
+	}        	
+     
+
+	var data_to_send_version =  '<fpMateConfiguration>' +
+								'   <readVersion />' +
+								'</fpMateConfiguration>';
+
+	var data_to_send_status =   '<printerCommand>' +
+			            		'   <queryPrinterStatus />' +
+					            '</printerCommand>';
+
+
+   	var epos_version = new epson.fiscalPrint();
+	var epos_status = new epson.fiscalPrint();
+	epos_version.onreceive = function (res, tag_list_names, add_info_version)
+	{
+		console.log('call 1 ', res, tag_list_names, add_info_version)
+		document.getElementById("valore6").innerHTML = add_info_version.fpmateVersion;
+
+	}
+	epos_status.onreceive = function (res, tag_list_names, add_info)
+	{
+		
+		console.log('call 2 ', res, tag_list_names, add_info)
+		
+		//alert("result: " + res.result + "\ncode: " + res.code + "\ndescription: " + res.description);
+		document.getElementById("valore1").innerHTML = res.success;
+		if (res.code == "")
+		{
+			document.getElementById("valore2").innerHTML = "&nbsp;"; // To make border rendered
+		}
+		else
+		{
+			document.getElementById("valore2").innerHTML = res.code;
+		}
+		document.getElementById("valore3").innerHTML = res.status;
+		document.getElementById("valore4").innerHTML = add_info.cpuRel;
+		document.getElementById("valore5").innerHTML = add_info.mfRel;
+		document.getElementById("valore7").innerHTML = add_info.mfStatus;
+	
+		switch(add_info.fpStatus.substring(0,1))
+		{
+			case "0":
+				document.getElementById("valore8").innerHTML = "OK";
+				break;
+			case "2":
+				document.getElementById("valore8").innerHTML = "Carta in esaurimento";
+				break;
+			case "3":
+				document.getElementById("valore8").innerHTML = "Offline (fine carta o coperchio aperto)";
+				break;
+			default:
+				document.getElementById("valore8").innerHTML = "Risposta errata";
+		}
+					
+		switch(add_info.fpStatus.substring(1,2))
+		{
+			case "0":
+				document.getElementById("valore9").innerHTML = "OK";
+				break;
+			case "1":
+				document.getElementById("valore9").innerHTML = "Prossimo ad Esaurimento";
+				break;
+			case "2":
+				document.getElementById("valore9").innerHTML = "Da formattare";
+				break;
+			case "3":
+				document.getElementById("valore9").innerHTML = "Precedente";
+				break;
+			case "4":
+				document.getElementById("valore9").innerHTML = "Di altro misuratore";
+				break;
+			case "5":
+				document.getElementById("valore9").innerHTML = "Esaurito";
+				break;
+			default:
+				document.getElementById("valore9").innerHTML = "Risposta errata";
+		}
+			
+		switch(add_info.fpStatus.substring(2,3))
+		{
+			case "0":
+				document.getElementById("valore10").innerHTML = "Aperto";
+				break;
+			case "1":
+				document.getElementById("valore10").innerHTML = "Chiuso";
+				break;
+			default:
+				document.getElementById("valore10").innerHTML = "Risposta errata";
+		}
+		
+		switch(add_info.fpStatus.substring(3,4))
+		{
+			case "0":
+				document.getElementById("valore11").innerHTML = "Fiscale aperto";
+				break;
+			case "1":
+				document.getElementById("valore11").innerHTML = "Fiscale/Non fiscale chiuso";
+				break;
+			case "2":
+				document.getElementById("valore11").innerHTML = "Non fiscale aperto";
+				break;
+			case "3":
+				document.getElementById("valore11").innerHTML = "Pagamento in corso";
+				break;
+			case "4":
+				document.getElementById("valore11").innerHTML = "Errore ultimo comando ESC/POS con Fiscale/Non fiscale chiuso";
+				break;
+			case "5":
+				document.getElementById("valore11").innerHTML = "Scontrino in negativo";
+				break;
+			case "6":
+				document.getElementById("valore11").innerHTML = "Errore ultimo comando ESC/POS con Non fiscale aperto";
+				break;
+			case "7":
+				document.getElementById("valore11").innerHTML = "Attesa chiusura scontrino modalit&agrave; JAVAPOS";
+				break;
+			case "8":
+				document.getElementById("valore11").innerHTML = "Documento fiscale aperto";
+				break;
+			case "9":
+				document.getElementById("valore11").innerHTML = "Nota di credito aperta da PC";
+				break;
+			case "A":
+				document.getElementById("valore11").innerHTML = "Titolo aperto";
+				break;
+			case "B":
+				document.getElementById("valore11").innerHTML = "Titolo chiuso";
+				break;
+			default:
+				document.getElementById("valore11").innerHTML = "Risposta errata";
+		}
+			
+		switch(add_info.fpStatus.substring(4,5))
+		{
+			case "0":
+				document.getElementById("valore12").innerHTML = "Stato registrazione";
+				break;
+			case "1":
+				document.getElementById("valore12").innerHTML = "Stato X";
+				break;
+			case "2":
+				document.getElementById("valore12").innerHTML = "Stato Z";
+				break;
+			case "3":
+				document.getElementById("valore12").innerHTML = "Stato Set";
+				break;
+			case "4":
+				document.getElementById("valore12").innerHTML = "Modalit&agrave; Biglietteria";
+				break;
+			case "5":
+				document.getElementById("valore12").innerHTML = "Nota di credito aperta da tasteria";
+				break;
+			default:
+				document.getElementById("valore12").innerHTML = "Risposta errata";
+		}
+			
+	} // fine onReceive status
+
+    // epos.onerror = function () {};
+	
+	//epos_version.send(window.location.protocol + "//" + window.location.hostname + "/cgi-bin/fpmate.cgi", data_to_send_version);
+	epos_version.send(window.location.protocol + "//" + hostname + "/cgi-bin/fpmate.cgi", data_to_send_version);
+	//epos_status.send(window.location.protocol + "//" + window.location.hostname + "/cgi-bin/fpmate.cgi", data_to_send_status);
+	epos_status.send(window.location.protocol + "//" + hostname + "/cgi-bin/fpmate.cgi", data_to_send_status);
+}
+
+</script>
+
+   </HEAD>
+<BODY onload="doSendData()">
+<h1>Stato Stampante Fiscale</h1>
+<div id="blocco_main">
+
+<div id="blocco_sinistra">
+<table style="height: 100%">
+<tr class="parametro_valore">
+<td id="parametro1" class="parametro">Risultato</td>
+<td id="valore1" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro2" class="parametro">Codice</td>
+<td id="valore2" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro3" class="parametro">Descrizione</td>
+<td id="valore3" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro4" class="parametro">Versione SF</td>
+<td id="valore4" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro5" class="parametro">Versione MF</td>
+<td id="valore5" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro6" class="parametro">Versione fpmate</td>
+<td id="valore6" class="valore"></td>
+</tr>
+</table>
+</div> <!-- blocco_sinistra -->
+
+<div id="blocco_destra">
+<table style="height: 100%">
+
+<tr class="parametro_valore">
+<td id="parametro7" class="parametro">Stato MF</td>
+<td id="valore7" class="valore"></td>
+</tr>
+
+<tr class="parametro_valore">
+<td id="parametro8" class="parametro">Stato Stampante</td>
+<td id="valore8" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro9" class="parametro">Stato DGFE</td>
+<td id="valore9" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro10" class="parametro">Stato Cassetto</td>
+<td id="valore10" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro11" class="parametro">Stato Scontrino</td>
+<td id="valore11" class="valore"></td>
+</tr>
+<tr class="parametro_valore">
+<td id="parametro12" class="parametro">Stato Operativo</td>
+<td id="valore12" class="valore"></td>
+</tr>
+
+</table>
+</div> <!-- blocco_destra -->
+
+</div> <!-- blocco_main -->
+<div id="aggiorna">
+<input type="button" name="Aggiorna" value="Aggiorna" onclick="doSendData()" style="width:75px;height:75px;-webkit-appearance:none;  /* Per rendere la visualizzazione uguale sull'iPad */">
+</div>
+</BODY>
+</HTML>
