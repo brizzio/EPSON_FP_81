@@ -13,7 +13,7 @@ const randomicElementsFromArray = (a, n) => new Array(n).fill(null).map(() => a[
         
            
 
-var response = `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+var response = `<soap:Envelope xmlns:soap="https://schemas.xmlsoap.org/soap/envelope/">
    <soap:Body>
       <ns2:getNotificationsResponse xmlns:ns2="---url---">
          <return>
@@ -88,7 +88,7 @@ var response = `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envel
 
 
 
-var soapRequest = `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+var soapRequest = `<soap:Envelope xmlns:soap="https://schemas.xmlsoap.org/soap/envelope/">
    <soap:Body>
       
    </soap:Body>
@@ -96,7 +96,7 @@ var soapRequest = `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/en
 
 
 const encodeSoap = (command)=>{
-    return `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    return `<soap:Envelope xmlns:soap="https://schemas.xmlsoap.org/soap/envelope/">
             <soap:Body>
                 ${command}
             </soap:Body>
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
 })
 
 
-const config = ()=> window.location.href = `http://${staticIp}/cgi-bin/fpMateConfiguration.xml`
+const config = ()=> window.location.href = `https://${staticIp}/cgi-bin/fpMateConfiguration.xml`
 
 
 const sendToPrinter = ()=>{
@@ -158,7 +158,7 @@ const sendToPrinter = ()=>{
 
     console.log('soap> ', soapBodyRequest)
 
-    let url = `http://${ip}/cgi-bin/fpmate.cgi`
+    let url = `https://${ip}/cgi-bin/fpmate.cgi`
 
     fetch(url, {
             body: soapBodyRequest,
@@ -182,7 +182,7 @@ const sendToPrinter = ()=>{
 
 const printXml = (xml)=>{
     
-    let url = `http://${staticIp}/cgi-bin/fpmate.cgi`
+    let url = `https://${staticIp}/cgi-bin/fpmate.cgi`
 
     console.log('soap body> ', xml)
 
@@ -331,7 +331,7 @@ var data_to_send = '<printerCommand>\n' +
 
  var epos = new epson.fiscalPrint(); 
 
- let url = `http://${staticIp}/cgi-bin/fpmate.cgi`
+ let url = `https://${staticIp}/cgi-bin/fpmate.cgi`
 
 
  epos.onreceive = function (res, tag_list_names, add_info) { 
