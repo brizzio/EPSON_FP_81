@@ -845,7 +845,7 @@
     //
     ePOSBuilder.prototype.toString = function () {
         // append root element
-        var epos = '<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">' +
+        var epos = '<epos-print xmlns="https://www.epson-pos.com/schemas/2011/03/epos-print">' +
             this.message + '</epos-print>';
         // return message
         return epos;
@@ -1119,7 +1119,7 @@
     ePOSPrint.prototype.send = function (address, request) {
         // create SOAP envelope
         var soap = '<?xml version="1.0" encoding="utf-8"?>' +
-            '<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body>' +
+            '<s:Envelope xmlns:s="https://schemas.xmlsoap.org/soap/envelope/"><s:Body>' +
             request + '</s:Body></s:Envelope>';
         // create XMLHttpRequest object
         var xhr = createXMLHttpRequest();
@@ -1267,7 +1267,7 @@
 	{
 		// create SOAP envelope
 		var soap = '<?xml version="1.0" encoding="utf-8"?>\n' +
-			'<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">\n' +
+			'<s:Envelope xmlns:s="https://schemas.xmlsoap.org/soap/envelope/">\n' +
 			'<s:Body>\n' +
 			request +
 			'</s:Body>\n' +
